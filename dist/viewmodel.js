@@ -221,6 +221,36 @@ var ViewModel = function () {
         valueSetter(event.target.value);
       };
     }
+  }, {
+    key: 'load',
+    value: function load(toLoad, viewmodel) {
+      ViewModel.loadProperties(toLoad, viewmodel);
+    }
+  }, {
+    key: 'loadProperties',
+    value: function loadProperties(toLoad, container) {
+      var loadObj = function loadObj(obj) {
+        for (var key in obj) {
+          var value = obj[key];
+          if (!(ViewModel.properties[key] || ViewModel.reserved[key])) {
+            if (_helper2.default.isFunction(value)) {
+              container[key] = value;
+            } else if (container[key] && container[key].vmProp && _helper2.default.isFunction(container[key])) {
+              container[key](value);
+            } else {
+              container[key] = ViewModel.prop(value, container);
+            }
+          }
+        }
+      };
+      if (toLoad instanceof Array) {
+        for (i = 0, len = toLoad.length; i < len; i++) {
+          loadObj(toLoad[i]);
+        }
+      } else {
+        loadObj(toLoad);
+      }
+    }
   }]);
 
   return ViewModel;
@@ -230,3 +260,38 @@ exports.default = ViewModel;
 
 
 ViewModel.Tracker = _tracker2.default;
+
+// These are view model properties the user can use
+// but they have special meaning to ViewModel
+ViewModel.properties = {
+  autorun: 1,
+  events: 1,
+  share: 1,
+  mixin: 1,
+  signal: 1,
+  ref: 1,
+  load: 1,
+  onRendered: 1,
+  onCreated: 1,
+  onDestroyed: 1
+};
+
+// The user can't use these properties
+// when defining a view model
+ViewModel.reserved = {
+  vmId: 1,
+  vmPathToParent: 1,
+  vmOnCreated: 1,
+  vmOnRendered: 1,
+  vmOnDestroyed: 1,
+  vmAutorun: 1,
+  vmEvents: 1,
+  vmInitial: 1,
+  vmProp: 1,
+  templateInstance: 1,
+  parent: 1,
+  children: 1,
+  child: 1,
+  reset: 1,
+  data: 1
+};
