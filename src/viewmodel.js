@@ -6,6 +6,12 @@ export default class ViewModel {
   static nextId() { return H.nextId++;}
   static prop(initial, component) {
     const dependency = new Tracker.Dependency();
+    const oldChanged = dependency.changed.bind(dependency);
+    dependency.changed = function() {
+      component.setState({ vmChanged: true });
+      oldChanged();
+    }
+    
     const initialValue = H.isArray(initial) ? new ReactiveArray(initial, dependency) : initial;
     let _value = initialValue;
     const changeValue = function(value) {
@@ -14,7 +20,6 @@ export default class ViewModel {
       } else {
         _value = value;
       }
-      component.setState({ vmChanged: true });
       return dependency.changed();
     };
     const funProp = function(value) {
@@ -120,8 +125,8 @@ export default class ViewModel {
           }
         }
         const primitive = H.isPrimitive(name);
-        if (container instanceof ViewModel && !primitive && !container[name]) {
-          container[name] = ViewModel.prop(undefined, viewmodel);
+        if (container.vmId && !primitive && !container[name]) {
+          container[name] = ViewModel.prop('', viewmodel);
         }
         if (!primitive && !((container != null) && ((container[name] != null) || H.isObject(container)))) {
           const errorMsg = "Can't access '" + name + "' of '" + container + "'.";

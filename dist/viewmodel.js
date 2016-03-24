@@ -36,6 +36,12 @@ var ViewModel = function () {
     key: 'prop',
     value: function prop(initial, component) {
       var dependency = new _tracker2.default.Dependency();
+      var oldChanged = dependency.changed.bind(dependency);
+      dependency.changed = function () {
+        component.setState({ vmChanged: true });
+        oldChanged();
+      };
+
       var initialValue = _helper2.default.isArray(initial) ? new _reactiveArray2.default(initial, dependency) : initial;
       var _value = initialValue;
       var changeValue = function changeValue(value) {
@@ -44,7 +50,6 @@ var ViewModel = function () {
         } else {
           _value = value;
         }
-        component.setState({ vmChanged: true });
         return dependency.changed();
       };
       var funProp = function funProp(value) {
@@ -155,8 +160,8 @@ var ViewModel = function () {
             }
           }
           var primitive = _helper2.default.isPrimitive(name);
-          if (container instanceof ViewModel && !primitive && !container[name]) {
-            container[name] = ViewModel.prop(undefined, viewmodel);
+          if (container.vmId && !primitive && !container[name]) {
+            container[name] = ViewModel.prop('', viewmodel);
           }
           if (!primitive && !(container != null && (container[name] != null || _helper2.default.isObject(container)))) {
             var errorMsg = "Can't access '" + name + "' of '" + container + "'.";
