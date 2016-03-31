@@ -157,7 +157,7 @@ export default class ViewModel {
       }
       newContainer = ViewModel.getValue(container, bindValue.substring(0, i), viewmodel);
       newBindValue = bindValue.substring(i + 1);
-      ViewModel.setValue(value, newContainer, newBindValue, viewmodel);
+      ViewModel.setValueFull(value, newContainer, newBindValue, viewmodel);
     } else {
       if (H.isFunction(container[bindValue])) {
         container[bindValue](value);
