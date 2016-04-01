@@ -216,6 +216,31 @@ export default class ViewModel {
       loadObj(toLoad);
     }
   };
+
+  // Special thanks to @dino and @faceyspacey for this implementation
+  // shamelessly stolen from their TrackerReact project
+  static autorunOnce(renderFunc, component) {
+    const name = "vmRenderComputation";
+    let retValue;
+    // Stop it just in case the autorun never re-ran
+    if (component[name] && !component[name].stopped) component[name].stop();
+
+    component[name] = ViewModel.Tracker.nonreactive(() => {
+      return ViewModel.Tracker.autorun(c => {
+        if (c.firstRun) {
+          retValue = renderFunc.call(component);
+        } else {
+          // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
+          // important though.
+          if (component[name]) component[name].stop();
+
+          component.setState( { vmChanged: 1 });
+        }
+      });
+    });
+
+    return retValue;
+  }
 }
 
 ViewModel.Tracker = Tracker;
