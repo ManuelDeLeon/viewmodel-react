@@ -193,7 +193,7 @@ var ViewModel = function () {
         }
         newContainer = ViewModel.getValue(container, bindValue.substring(0, i), viewmodel);
         newBindValue = bindValue.substring(i + 1);
-        ViewModel.setValue(value, newContainer, newBindValue, viewmodel);
+        ViewModel.setValueFull(value, newContainer, newBindValue, viewmodel);
       } else {
         if (_helper2.default.isFunction(container[bindValue])) {
           container[bindValue](value);
@@ -255,6 +255,34 @@ var ViewModel = function () {
       } else {
         loadObj(toLoad);
       }
+    }
+  }, {
+    key: 'autorunOnce',
+
+
+    // Special thanks to @dino and @faceyspacey for this implementation
+    // shamelessly stolen from their TrackerReact project
+    value: function autorunOnce(renderFunc, component) {
+      var name = "vmRenderComputation";
+      var retValue = void 0;
+      // Stop it just in case the autorun never re-ran
+      if (component[name] && !component[name].stopped) component[name].stop();
+
+      component[name] = ViewModel.Tracker.nonreactive(function () {
+        return ViewModel.Tracker.autorun(function (c) {
+          if (c.firstRun) {
+            retValue = renderFunc.call(component);
+          } else {
+            // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
+            // important though.
+            if (component[name]) component[name].stop();
+
+            component.setState({ vmChanged: 1 });
+          }
+        });
+      });
+
+      return retValue;
     }
   }]);
 
