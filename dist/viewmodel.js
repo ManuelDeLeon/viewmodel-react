@@ -284,6 +284,56 @@ var ViewModel = function () {
 
       return retValue;
     }
+  }, {
+    key: 'prepareComponentWillMount',
+    value: function prepareComponentWillMount(component) {
+      var old = component.componentWillMount;
+      component.componentWillMount = function () {
+        var _this = this;
+
+        this.parent = this.props.parent;
+        if (this.parent) this.parent.children().push(this);
+        this.load(this.props);
+        var oldRender = this.render;
+        this.render = function () {
+          return ViewModel.autorunOnce(oldRender, _this);
+        };
+        if (old) old();
+      };
+    }
+  }, {
+    key: 'prepareComponentWillUnmount',
+    value: function prepareComponentWillUnmount(component) {
+      var old = component.componentWillUnmount;
+      component.componentWillUnmount = function () {
+        this.vmComputations.forEach(function (c) {
+          return c.stop();
+        });
+        this.vmRenderComputation.stop();
+        if (old) old();
+      };
+    }
+  }, {
+    key: 'prepareShouldComponentUpdate',
+    value: function prepareShouldComponentUpdate(component) {
+      if (!component.shouldComponentUpdate) {
+        component.shouldComponentUpdate = function () {
+          return this.state && this.state.vmChanged;
+        };
+      }
+    }
+  }, {
+    key: 'prepareComponent',
+    value: function prepareComponent(component) {
+      component.vmId = ViewModel.nextId();
+      component.vmComputations = [];
+      component.load = function (obj) {
+        return ViewModel.load(obj, component);
+      };
+      ViewModel.prepareComponentWillMount(component);
+      ViewModel.prepareComponentWillUnmount(component);
+      ViewModel.prepareShouldComponentUpdate(component);
+    }
   }]);
 
   return ViewModel;

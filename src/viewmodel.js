@@ -241,6 +241,44 @@ export default class ViewModel {
 
     return retValue;
   }
+
+  static prepareComponentWillMount(component){
+    const old = component.componentWillMount;
+    component.componentWillMount = function() {
+      this.parent = this.props.parent;
+      if (this.parent) this.parent.children().push(this);
+      this.load(this.props);
+      let oldRender = this.render;
+      this.render = () => ViewModel.autorunOnce(oldRender, this);
+      if (old) old()
+    }
+  }
+
+  static prepareComponentWillUnmount(component){
+    const old = component.componentWillUnmount;
+    component.componentWillUnmount = function() {
+      this.vmComputations.forEach(c => c.stop());
+      this.vmRenderComputation.stop();
+      if (old) old()
+    }
+  }
+  
+  static prepareShouldComponentUpdate(component) {
+    if (! component.shouldComponentUpdate) {
+      component.shouldComponentUpdate = function() {
+        return this.state && this.state.vmChanged;
+      }
+    }
+  }
+
+  static prepareComponent(component) {
+    component.vmId = ViewModel.nextId();
+    component.vmComputations = [];
+    component.load = (obj) => ViewModel.load(obj, component);
+    ViewModel.prepareComponentWillMount(component);
+    ViewModel.prepareComponentWillUnmount(component);
+    ViewModel.prepareShouldComponentUpdate(component);
+  }
 }
 
 ViewModel.Tracker = Tracker;
