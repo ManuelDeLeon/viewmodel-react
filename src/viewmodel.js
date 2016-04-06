@@ -5,7 +5,7 @@ import ReactiveArray from './reactive-array';
 export default class ViewModel {
   static nextId() { return H.nextId++;}
   static prop(initial, component) {
-    const dependency = new Tracker.Dependency();
+    const dependency = new ViewModel.Tracker.Dependency();
     const oldChanged = dependency.changed.bind(dependency);
     dependency.changed = function() {
       component.setState({ vmChanged: true });
@@ -271,11 +271,48 @@ export default class ViewModel {
     }
   }
 
-  static prepareComponent(component) {
+  static prepareMethodsAndProperties(component, initial) {
+    for(let prop in initial) {
+      if(typeof initial[prop] === 'function') {
+        component[prop] = initial[prop].bind(component);
+      } else {
+        component[prop] = ViewModel.prop(initial[prop], component);
+      }
+    }
+  }
+
+  static prepareChildren(component) {
+    const dependency = new ViewModel.Tracker.Dependency();
+    const oldChanged = dependency.changed.bind(dependency);
+    dependency.changed = function() {
+      component.setState({ vmChanged: true });
+      oldChanged();
+    }
+    const array = new ReactiveArray([], dependency);
+    const funProp = function(search) {
+      array.depend();
+      if (arguments.length) {
+        const predicate = H.isString(search) ? function(vm) { return vm.vmComponentName === search; } : search;
+        return array.filter(predicate);
+      } else {
+        return array;
+      }
+    }
+    component.children = funProp;
+  }
+
+  static prepareComponent(componentName, component, initial) {
     component.vmId = ViewModel.nextId();
+    component.vmComponentName = componentName;
     component.vmComputations = [];
-    component.vmChildren = new ReactiveArray();
+    component.vmOnCreated = [];
+    component.vmOnRendered = [];
+    component.vmOnDestroyed = [];
+    component.vmAutorun = [];
     component.load = (obj) => ViewModel.load(obj, component);
+
+    ViewModel.prepareChildren(component);
+    ViewModel.prepareMethodsAndProperties(component, initial);
     ViewModel.prepareComponentWillMount(component);
     ViewModel.prepareComponentWillUnmount(component);
     ViewModel.prepareShouldComponentUpdate(component);

@@ -35,7 +35,7 @@ var ViewModel = function () {
   }, {
     key: 'prop',
     value: function prop(initial, component) {
-      var dependency = new _tracker2.default.Dependency();
+      var dependency = new ViewModel.Tracker.Dependency();
       var oldChanged = dependency.changed.bind(dependency);
       dependency.changed = function () {
         component.setState({ vmChanged: true });
@@ -323,13 +323,55 @@ var ViewModel = function () {
       }
     }
   }, {
+    key: 'prepareMethodsAndProperties',
+    value: function prepareMethodsAndProperties(component, initial) {
+      for (var prop in initial) {
+        if (typeof initial[prop] === 'function') {
+          component[prop] = initial[prop].bind(component);
+        } else {
+          component[prop] = ViewModel.prop(initial[prop], component);
+        }
+      }
+    }
+  }, {
+    key: 'prepareChildren',
+    value: function prepareChildren(component) {
+      var dependency = new ViewModel.Tracker.Dependency();
+      var oldChanged = dependency.changed.bind(dependency);
+      dependency.changed = function () {
+        component.setState({ vmChanged: true });
+        oldChanged();
+      };
+      var array = new _reactiveArray2.default([], dependency);
+      var funProp = function funProp(search) {
+        array.depend();
+        if (arguments.length) {
+          var predicate = _helper2.default.isString(search) ? function (vm) {
+            return vm.vmComponentName === search;
+          } : search;
+          return array.filter(predicate);
+        } else {
+          return array;
+        }
+      };
+      component.children = funProp;
+    }
+  }, {
     key: 'prepareComponent',
-    value: function prepareComponent(component) {
+    value: function prepareComponent(componentName, component, initial) {
       component.vmId = ViewModel.nextId();
+      component.vmComponentName = componentName;
       component.vmComputations = [];
+      component.vmOnCreated = [];
+      component.vmOnRendered = [];
+      component.vmOnDestroyed = [];
+      component.vmAutorun = [];
       component.load = function (obj) {
         return ViewModel.load(obj, component);
       };
+
+      ViewModel.prepareChildren(component);
+      ViewModel.prepareMethodsAndProperties(component, initial);
       ViewModel.prepareComponentWillMount(component);
       ViewModel.prepareComponentWillUnmount(component);
       ViewModel.prepareShouldComponentUpdate(component);
