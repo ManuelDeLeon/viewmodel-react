@@ -274,6 +274,7 @@ export default class ViewModel {
   static prepareComponent(component) {
     component.vmId = ViewModel.nextId();
     component.vmComputations = [];
+    component.vmChildren = new ReactiveArray();
     component.load = (obj) => ViewModel.load(obj, component);
     ViewModel.prepareComponentWillMount(component);
     ViewModel.prepareComponentWillUnmount(component);
