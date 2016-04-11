@@ -268,18 +268,15 @@ var ViewModel = function () {
       // Stop it just in case the autorun never re-ran
       if (component[name] && !component[name].stopped) component[name].stop();
 
-      component[name] = ViewModel.Tracker.nonreactive(function () {
-        return ViewModel.Tracker.autorun(function (c) {
-          if (c.firstRun) {
-            retValue = renderFunc.call(component);
-          } else {
-            // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
-            // important though.
-            if (component[name]) component[name].stop();
-
-            component.setState({ vmChanged: 1 });
-          }
-        });
+      component[name] = ViewModel.Tracker.autorun(function (c) {
+        if (c.firstRun) {
+          retValue = renderFunc.call(component);
+        } else {
+          // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
+          // important though.
+          if (component[name]) component[name].stop();
+          component.setState({ vmChanged: true });
+        }
       });
 
       return retValue;
@@ -298,7 +295,7 @@ var ViewModel = function () {
         this.render = function () {
           return ViewModel.autorunOnce(oldRender, _this);
         };
-        if (old) old();
+        if (old) old.call(component);
       };
     }
   }, {
@@ -310,7 +307,7 @@ var ViewModel = function () {
           return c.stop();
         });
         this.vmRenderComputation.stop();
-        if (old) old();
+        if (old) old.call(component);
       };
     }
   }, {
@@ -318,7 +315,7 @@ var ViewModel = function () {
     value: function prepareShouldComponentUpdate(component) {
       if (!component.shouldComponentUpdate) {
         component.shouldComponentUpdate = function () {
-          return this.state && this.state.vmChanged;
+          return !!(this.state && this.state.vmChanged);
         };
       }
     }
@@ -326,6 +323,7 @@ var ViewModel = function () {
     key: 'prepareMethodsAndProperties',
     value: function prepareMethodsAndProperties(component, initial) {
       for (var prop in initial) {
+        if (ViewModel.reactKeyword[prop]) continue;
         if (typeof initial[prop] === 'function') {
           component[prop] = initial[prop].bind(component);
         } else {
@@ -419,4 +417,22 @@ ViewModel.reserved = {
   child: 1,
   reset: 1,
   data: 1
+};
+
+ViewModel.reactKeyword = {
+  render: 1,
+  constructor: 1,
+  // getInitialState: 1,
+  // getDefaultProps: 1,
+  // propTypes: 1,
+  // mixins : 1,
+  // statics : 1,
+  // displayName : 1,
+  componentWillReceiveProps: 1,
+  shouldComponentUpdate: 1,
+  componentWillUpdate: 1,
+  componentDidUpdate: 1,
+  componentWillMount: 1,
+  componentDidMount: 1,
+  componentWillUnmount: 1
 };

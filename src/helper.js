@@ -67,14 +67,14 @@ export default class Helper {
   
   static isQuoted(str) {
     return Helper.stringRegex.test(str);
-  };
+  }
   static removeQuotes(str) {
     return str.substr(1, str.length - 2);
-  };
+  }
 
   static isPrimitive(val) {
     return val === "true" || val === "false" || val === "null" || val === "undefined" || Helper.isNumeric(val);
-  };
+  }
   
   static getPrimitive(val) {
     switch (val) {
