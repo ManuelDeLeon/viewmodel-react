@@ -225,19 +225,17 @@ export default class ViewModel {
     // Stop it just in case the autorun never re-ran
     if (component[name] && !component[name].stopped) component[name].stop();
 
-    component[name] = ViewModel.Tracker.nonreactive(() => {
-      return ViewModel.Tracker.autorun(c => {
+    component[name] = ViewModel.Tracker.autorun(c => {
         if (c.firstRun) {
           retValue = renderFunc.call(component);
         } else {
           // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
           // important though.
           if (component[name]) component[name].stop();
-
-          component.setState( { vmChanged: 1 });
+          component.setState( { vmChanged: true });
         }
       });
-    });
+
 
     return retValue;
   }
@@ -250,7 +248,7 @@ export default class ViewModel {
       this.load(this.props);
       let oldRender = this.render;
       this.render = () => ViewModel.autorunOnce(oldRender, this);
-      if (old) old()
+      if (old) old.call(component)
     }
   }
 
@@ -259,20 +257,21 @@ export default class ViewModel {
     component.componentWillUnmount = function() {
       this.vmComputations.forEach(c => c.stop());
       this.vmRenderComputation.stop();
-      if (old) old()
+      if (old) old.call(component)
     }
   }
   
   static prepareShouldComponentUpdate(component) {
     if (! component.shouldComponentUpdate) {
       component.shouldComponentUpdate = function() {
-        return this.state && this.state.vmChanged;
+        return !!(this.state && this.state.vmChanged);
       }
     }
   }
 
   static prepareMethodsAndProperties(component, initial) {
     for(let prop in initial) {
+      if (ViewModel.reactKeyword[prop]) continue;
       if(typeof initial[prop] === 'function') {
         component[prop] = initial[prop].bind(component);
       } else {
@@ -354,4 +353,22 @@ ViewModel.reserved = {
   child: 1,
   reset: 1,
   data: 1
+};
+
+ViewModel.reactKeyword = {
+  render: 1,
+  constructor: 1,
+  // getInitialState: 1,
+  // getDefaultProps: 1,
+  // propTypes: 1,
+  // mixins : 1,
+  // statics : 1,
+  // displayName : 1,
+  componentWillReceiveProps : 1,
+  shouldComponentUpdate : 1,
+  componentWillUpdate : 1,
+  componentDidUpdate : 1,
+  componentWillMount: 1,
+  componentDidMount: 1,
+  componentWillUnmount: 1
 };
