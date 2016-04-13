@@ -4,11 +4,63 @@ import ReactiveArray from './reactive-array';
 
 export default class ViewModel {
   static nextId() { return H.nextId++;}
+  static global(obj) {
+    ViewModel.globals.push(obj);
+  }
+
+  static add(component) {
+    const name = component.vmComponentName;
+    if (!ViewModel.components[name]){
+      ViewModel.components[name] = {};
+    }
+    ViewModel.components[name][component.vmId] = component;
+  }
+
+  static find(nameOrPredicate, predicateOrNothing, onlyOne = false){
+    const name = H.isString(nameOrPredicate) && nameOrPredicate;
+    const predicate =
+      (H.isFunction(predicateOrNothing) && predicateOrNothing)
+      || (H.isFunction(nameOrPredicate) && nameOrPredicate);
+    let collection;
+    if (name) {
+      if (ViewModel.components[name])
+        collection = { all: ViewModel.components[name] }
+    } else {
+      collection = ViewModel.components
+    };
+    if(!collection) return [];
+    const result = [];
+    for(let groupName in collection) {
+      let group = collection[groupName];
+      for(let item in group) {
+        if (!predicate || predicate(group[item])) {
+          result.push(group[item]);
+          if (onlyOne) return result;
+        }
+      }
+    }
+    return result;
+  }
+
+  static findOne(nameOrPredicate, predicateOrNothing) {
+    const results = ViewModel.find(nameOrPredicate, predicateOrNothing, true);
+    if (results.length) {
+      return results[0];
+    }
+  }
+
+  static mixin(obj) {
+    for(let key in obj){
+      ViewModel.mixins[key] = obj[key];
+    }
+  }
+
   static prop(initial, component) {
     const dependency = new ViewModel.Tracker.Dependency();
     const oldChanged = dependency.changed.bind(dependency);
     dependency.changed = function() {
-      component.setState({ vmChanged: true });
+      component.setState({ });
+      component.vmChanged = true
       oldChanged();
     }
     
@@ -232,7 +284,7 @@ export default class ViewModel {
           // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
           // important though.
           if (component[name]) component[name].stop();
-          component.setState( { vmChanged: true });
+          component.setState( { });
         }
       });
 
@@ -245,6 +297,11 @@ export default class ViewModel {
     component.componentWillMount = function() {
       this.parent = this.props.parent;
       if (this.parent) this.parent.children().push(this);
+
+      for(let fun of component.vmCreated){
+        fun.call(component)
+      }
+
       this.load(this.props);
       let oldRender = this.render;
       this.render = () => ViewModel.autorunOnce(oldRender, this);
@@ -252,11 +309,32 @@ export default class ViewModel {
     }
   }
 
+  static prepareComponentDidMount(component){
+    const old = component.componentDidMount;
+    component.componentDidMount = function() {
+      for(let fun of component.vmRendered){
+        fun.call(component)
+      }
+      if (old) old.call(component)
+    }
+  }
+
   static prepareComponentWillUnmount(component){
     const old = component.componentWillUnmount;
     component.componentWillUnmount = function() {
+      for(let fun of component.vmDestroyed){
+        fun.call(component)
+      }
       this.vmComputations.forEach(c => c.stop());
       this.vmRenderComputation.stop();
+      if (old) old.call(component)
+    }
+  }
+
+  static prepareComponentDidUpdate(component){
+    const old = component.componentDidUpdate;
+    component.componentDidUpdate = function() {
+      component.vmChanged = false;
       if (old) old.call(component)
     }
   }
@@ -264,7 +342,7 @@ export default class ViewModel {
   static prepareShouldComponentUpdate(component) {
     if (! component.shouldComponentUpdate) {
       component.shouldComponentUpdate = function() {
-        return !!(this.state && this.state.vmChanged);
+        return !!component.vmChanged;
       }
     }
   }
@@ -284,7 +362,8 @@ export default class ViewModel {
     const dependency = new ViewModel.Tracker.Dependency();
     const oldChanged = dependency.changed.bind(dependency);
     dependency.changed = function() {
-      component.setState({ vmChanged: true });
+      component.setState({ });
+      component.vmChanged = true;
       oldChanged();
     }
     const array = new ReactiveArray([], dependency);
@@ -300,19 +379,91 @@ export default class ViewModel {
     component.children = funProp;
   }
 
+  static loadMixinShare(toLoad, collection, component) {
+    if (! toLoad) return;
+    if (toLoad instanceof Array) {
+      for(let element of toLoad) {
+        if (H.isString(element)) {
+          component.load( collection[element] );
+        } else {
+          ViewModel.loadMixinShare( element, collection, component );
+        }
+      }
+    } else if (H.isString(toLoad)) {
+      component.load( collection[toLoad] );
+    } else {
+      for (let ref in toLoad) {
+        const container = {};
+        const mixshare = toLoad[ref];
+        if ( mixshare instanceof Array ) {
+          for(let item of mixshare){
+            ViewModel.load( collection[item], container );
+          }
+        } else {
+          ViewModel.load( collection[mixshare], container );
+        }
+        component[ref] = container;
+      }
+    }
+  }
+
+  static prepareLoad(component) {
+    component.load = function(toLoad) {
+      if (! toLoad) return;
+
+      // Mixins
+      ViewModel.loadMixinShare( toLoad.mixin, ViewModel.mixins, component );
+
+      // Whatever is in 'load' is loaded before direct properties
+      component.load( toLoad.load )
+
+      // Load the object into the component
+      // (direct properties)
+      ViewModel.load(toLoad, component)
+
+      const hooks = {
+        created: 'vmCreated',
+        rendered: 'vmRendered',
+        destroyed: 'vmDestroyed',
+        autorun: 'vmAutorun'
+      }
+
+      for(let hook in hooks){
+        if (!toLoad[hook]) continue;
+        let vmProp = hooks[hook];
+        if (toLoad[hook] instanceof Array) {
+          for(let item in toLoad[hook]) {
+            component[vmProp].push(item)
+          }
+        } else {
+          component[vmProp].push(toLoad[hook])
+        }
+      }
+    }
+  }
+
   static prepareComponent(componentName, component, initial) {
     component.vmId = ViewModel.nextId();
     component.vmComponentName = componentName;
     component.vmComputations = [];
-    component.vmOnCreated = [];
-    component.vmOnRendered = [];
-    component.vmOnDestroyed = [];
+    component.vmCreated = [];
+    component.vmRendered = [];
+    component.vmDestroyed = [];
     component.vmAutorun = [];
-    component.load = (obj) => ViewModel.load(obj, component);
+
+    ViewModel.add(component);
+    
+    ViewModel.prepareLoad(component);
+    for(let global of ViewModel.globals) {
+      component.load(global);
+    }
+    component.load(initial);
 
     ViewModel.prepareChildren(component);
     ViewModel.prepareMethodsAndProperties(component, initial);
     ViewModel.prepareComponentWillMount(component);
+    ViewModel.prepareComponentDidMount(component);
+    ViewModel.prepareComponentDidUpdate(component);
     ViewModel.prepareComponentWillUnmount(component);
     ViewModel.prepareShouldComponentUpdate(component);
   }
@@ -372,3 +523,7 @@ ViewModel.reactKeyword = {
   componentDidMount: 1,
   componentWillUnmount: 1
 };
+
+ViewModel.globals = [];
+ViewModel.components = {};
+ViewModel.mixins = {};
