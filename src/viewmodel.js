@@ -55,12 +55,32 @@ export default class ViewModel {
     }
   }
 
+  static share(obj) {
+    for(let key in obj) {
+      ViewModel.shared[key] = {}
+      let value = obj[key];
+      for(let prop in value){
+        let content = value[prop];
+        if (H.isFunction(content) || ViewModel.properties[prop]){
+          ViewModel.shared[key][prop] = content;
+        } else {
+          ViewModel.shared[key][prop] = ViewModel.prop(content);
+        }
+      }
+    }
+  }
+
   static prop(initial, component) {
     const dependency = new ViewModel.Tracker.Dependency();
     const oldChanged = dependency.changed.bind(dependency);
+    const components = {};
+    if (component && !components[component.vmId]) components[component.vmId] = component;
     dependency.changed = function() {
-      component.setState({ });
-      component.vmChanged = true
+      for(let key in components){
+        let c = components[key];
+        c.setState({ });
+        c.vmChanged = true
+      }
       oldChanged();
     }
     
@@ -78,7 +98,7 @@ export default class ViewModel {
       if (arguments.length) {
         if (_value !== value) {
           if (funProp.delay > 0) {
-            ViewModel.delay(funProp.delay, funProp.vmProp, function() { changeValue(value) });
+            ViewModel.delay(funProp.delay, funProp.vmPropId, function() { changeValue(value) });
           } else {
             changeValue(value);
           }
@@ -103,7 +123,10 @@ export default class ViewModel {
       dependency.changed();
     };
     funProp.delay = 0;
-    funProp.vmProp = ViewModel.nextId();
+    funProp.vmPropId = ViewModel.nextId();
+    funProp.addComponent = function(component){
+      if (! components[component.vmId]) components[component.vmId] = component;
+    };
     Object.defineProperty(funProp, 'value', {
       get() {
         return _value;
@@ -111,6 +134,18 @@ export default class ViewModel {
     });
     return funProp;
   };
+
+  static getValueRef(container, prop) {
+    return function(element) {
+      container.vmAutorun.push(
+        ViewModel.Tracker.autorun(function() {
+          if(element && container[prop]() != element.value) {
+            element.value = container[prop]();
+          }
+        })
+      )
+    }
+  }
 
   static getValue(container, bindValue, viewmodel) {
     let value;
@@ -241,18 +276,17 @@ export default class ViewModel {
     }
   };
 
-  static load(toLoad, viewmodel) {
-    ViewModel.loadProperties(toLoad, viewmodel)
-  }
-  
-  static loadProperties(toLoad, container) {
+  static load(toLoad, container, component = container) {
     const loadObj = function(obj) {
       for (let key in obj) {
         const value = obj[key];
         if (!(ViewModel.properties[key] || ViewModel.reserved[key])) {
           if (H.isFunction(value)) {
             container[key] = value;
-          } else if (container[key] && container[key].vmProp && H.isFunction(container[key])) {
+            if (value.vmPropId) {
+              container[key].addComponent(component);
+            }
+          } else if (container[key] && container[key].vmPropId && H.isFunction(container[key])) {
             container[key](value);
           } else {
             container[key] = ViewModel.prop(value, container);
@@ -301,8 +335,17 @@ export default class ViewModel {
       for(let fun of component.vmCreated){
         fun.call(component)
       }
-
       this.load(this.props);
+      for(let autorun of component.vmAutorun) {
+        (
+          function(autorun){
+            const fun = function(c) {
+              autorun.call(component, c);
+            }
+            component.vmComputations.push( ViewModel.Tracker.autorun(fun) );
+          }
+        )(autorun);
+      }
       let oldRender = this.render;
       this.render = () => ViewModel.autorunOnce(oldRender, this);
       if (old) old.call(component)
@@ -397,10 +440,10 @@ export default class ViewModel {
         const mixshare = toLoad[ref];
         if ( mixshare instanceof Array ) {
           for(let item of mixshare){
-            ViewModel.load( collection[item], container );
+            ViewModel.load( collection[item], container, component );
           }
         } else {
-          ViewModel.load( collection[mixshare], container );
+          ViewModel.load( collection[mixshare], container, component );
         }
         component[ref] = container;
       }
@@ -410,6 +453,9 @@ export default class ViewModel {
   static prepareLoad(component) {
     component.load = function(toLoad) {
       if (! toLoad) return;
+
+      // Shared
+      ViewModel.loadMixinShare( toLoad.share, ViewModel.shared, component );
 
       // Mixins
       ViewModel.loadMixinShare( toLoad.mixin, ViewModel.mixins, component );
@@ -497,7 +543,7 @@ ViewModel.reserved = {
   vmAutorun: 1,
   vmEvents: 1,
   vmInitial: 1,
-  vmProp: 1,
+  vmPropId: 1,
   templateInstance: 1,
   parent: 1,
   children: 1,
@@ -527,3 +573,4 @@ ViewModel.reactKeyword = {
 ViewModel.globals = [];
 ViewModel.components = {};
 ViewModel.mixins = {};
+ViewModel.shared = {};
