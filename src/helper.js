@@ -56,7 +56,7 @@ for (let t in _tokens) {
 
 export default class Helper {
   static isArray(arr) { return arr instanceof Array; }
-  static isObject(obj) { return (typeof obj === "object") && (obj !== null); }
+  static isObject(obj) { return (typeof obj === "object") && (obj !== null) && !( obj instanceof Date); }
   static isFunction(fun) { return fun && {}.toString.call(fun) === '[object Function]'; }
   static isString(str) { return typeof str === 'string' || str instanceof String; }
   static isNumeric(n) { return !isNaN(parseFloat(n)) && isFinite(n); }
