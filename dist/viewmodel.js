@@ -33,12 +33,89 @@ var ViewModel = function () {
       return _helper2.default.nextId++;
     }
   }, {
+    key: 'global',
+    value: function global(obj) {
+      ViewModel.globals.push(obj);
+    }
+  }, {
+    key: 'add',
+    value: function add(component) {
+      var name = component.vmComponentName;
+      if (!ViewModel.components[name]) {
+        ViewModel.components[name] = {};
+      }
+      ViewModel.components[name][component.vmId] = component;
+    }
+  }, {
+    key: 'find',
+    value: function find(nameOrPredicate, predicateOrNothing) {
+      var onlyOne = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
+
+      var name = _helper2.default.isString(nameOrPredicate) && nameOrPredicate;
+      var predicate = _helper2.default.isFunction(predicateOrNothing) && predicateOrNothing || _helper2.default.isFunction(nameOrPredicate) && nameOrPredicate;
+      var collection = void 0;
+      if (name) {
+        if (ViewModel.components[name]) collection = { all: ViewModel.components[name] };
+      } else {
+        collection = ViewModel.components;
+      };
+      if (!collection) return [];
+      var result = [];
+      for (var groupName in collection) {
+        var group = collection[groupName];
+        for (var item in group) {
+          if (!predicate || predicate(group[item])) {
+            result.push(group[item]);
+            if (onlyOne) return result;
+          }
+        }
+      }
+      return result;
+    }
+  }, {
+    key: 'findOne',
+    value: function findOne(nameOrPredicate, predicateOrNothing) {
+      var results = ViewModel.find(nameOrPredicate, predicateOrNothing, true);
+      if (results.length) {
+        return results[0];
+      }
+    }
+  }, {
+    key: 'mixin',
+    value: function mixin(obj) {
+      for (var key in obj) {
+        ViewModel.mixins[key] = obj[key];
+      }
+    }
+  }, {
+    key: 'share',
+    value: function share(obj) {
+      for (var key in obj) {
+        ViewModel.shared[key] = {};
+        var value = obj[key];
+        for (var prop in value) {
+          var content = value[prop];
+          if (_helper2.default.isFunction(content) || ViewModel.properties[prop]) {
+            ViewModel.shared[key][prop] = content;
+          } else {
+            ViewModel.shared[key][prop] = ViewModel.prop(content);
+          }
+        }
+      }
+    }
+  }, {
     key: 'prop',
     value: function prop(initial, component) {
       var dependency = new ViewModel.Tracker.Dependency();
       var oldChanged = dependency.changed.bind(dependency);
+      var components = {};
+      if (component && !components[component.vmId]) components[component.vmId] = component;
       dependency.changed = function () {
-        component.setState({ vmChanged: true });
+        for (var key in components) {
+          var c = components[key];
+          c.setState({});
+          c.vmChanged = true;
+        }
         oldChanged();
       };
 
@@ -56,7 +133,7 @@ var ViewModel = function () {
         if (arguments.length) {
           if (_value !== value) {
             if (funProp.delay > 0) {
-              ViewModel.delay(funProp.delay, funProp.vmProp, function () {
+              ViewModel.delay(funProp.delay, funProp.vmPropId, function () {
                 changeValue(value);
               });
             } else {
@@ -83,13 +160,27 @@ var ViewModel = function () {
         dependency.changed();
       };
       funProp.delay = 0;
-      funProp.vmProp = ViewModel.nextId();
+      funProp.vmPropId = ViewModel.nextId();
+      funProp.addComponent = function (component) {
+        if (!components[component.vmId]) components[component.vmId] = component;
+      };
       Object.defineProperty(funProp, 'value', {
         get: function get() {
           return _value;
         }
       });
       return funProp;
+    }
+  }, {
+    key: 'getValueRef',
+    value: function getValueRef(container, prop) {
+      return function (element) {
+        container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
+          if (element && container[prop]() != element.value) {
+            element.value = container[prop]();
+          }
+        }));
+      };
     }
   }, {
     key: 'getValue',
@@ -228,19 +319,19 @@ var ViewModel = function () {
     }
   }, {
     key: 'load',
-    value: function load(toLoad, viewmodel) {
-      ViewModel.loadProperties(toLoad, viewmodel);
-    }
-  }, {
-    key: 'loadProperties',
-    value: function loadProperties(toLoad, container) {
+    value: function load(toLoad, container) {
+      var component = arguments.length <= 2 || arguments[2] === undefined ? container : arguments[2];
+
       var loadObj = function loadObj(obj) {
         for (var key in obj) {
           var value = obj[key];
           if (!(ViewModel.properties[key] || ViewModel.reserved[key])) {
             if (_helper2.default.isFunction(value)) {
               container[key] = value;
-            } else if (container[key] && container[key].vmProp && _helper2.default.isFunction(container[key])) {
+              if (value.vmPropId) {
+                container[key].addComponent(component);
+              }
+            } else if (container[key] && container[key].vmPropId && _helper2.default.isFunction(container[key])) {
               container[key](value);
             } else {
               container[key] = ViewModel.prop(value, container);
@@ -275,7 +366,7 @@ var ViewModel = function () {
           // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
           // important though.
           if (component[name]) component[name].stop();
-          component.setState({ vmChanged: true });
+          component.setState({});
         }
       });
 
@@ -290,7 +381,63 @@ var ViewModel = function () {
 
         this.parent = this.props.parent;
         if (this.parent) this.parent.children().push(this);
+
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+          for (var _iterator = component.vmCreated[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var fun = _step.value;
+
+            fun.call(component);
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator.return) {
+              _iterator.return();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
+        }
+
         this.load(this.props);
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
+
+        try {
+          for (var _iterator2 = component.vmAutorun[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+            var autorun = _step2.value;
+
+            (function (autorun) {
+              var fun = function fun(c) {
+                autorun.call(component, c);
+              };
+              component.vmComputations.push(ViewModel.Tracker.autorun(fun));
+            })(autorun);
+          }
+        } catch (err) {
+          _didIteratorError2 = true;
+          _iteratorError2 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion2 && _iterator2.return) {
+              _iterator2.return();
+            }
+          } finally {
+            if (_didIteratorError2) {
+              throw _iteratorError2;
+            }
+          }
+        }
+
         var oldRender = this.render;
         this.render = function () {
           return ViewModel.autorunOnce(oldRender, _this);
@@ -299,10 +446,68 @@ var ViewModel = function () {
       };
     }
   }, {
+    key: 'prepareComponentDidMount',
+    value: function prepareComponentDidMount(component) {
+      var old = component.componentDidMount;
+      component.componentDidMount = function () {
+        var _iteratorNormalCompletion3 = true;
+        var _didIteratorError3 = false;
+        var _iteratorError3 = undefined;
+
+        try {
+          for (var _iterator3 = component.vmRendered[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+            var fun = _step3.value;
+
+            fun.call(component);
+          }
+        } catch (err) {
+          _didIteratorError3 = true;
+          _iteratorError3 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion3 && _iterator3.return) {
+              _iterator3.return();
+            }
+          } finally {
+            if (_didIteratorError3) {
+              throw _iteratorError3;
+            }
+          }
+        }
+
+        if (old) old.call(component);
+      };
+    }
+  }, {
     key: 'prepareComponentWillUnmount',
     value: function prepareComponentWillUnmount(component) {
       var old = component.componentWillUnmount;
       component.componentWillUnmount = function () {
+        var _iteratorNormalCompletion4 = true;
+        var _didIteratorError4 = false;
+        var _iteratorError4 = undefined;
+
+        try {
+          for (var _iterator4 = component.vmDestroyed[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+            var fun = _step4.value;
+
+            fun.call(component);
+          }
+        } catch (err) {
+          _didIteratorError4 = true;
+          _iteratorError4 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion4 && _iterator4.return) {
+              _iterator4.return();
+            }
+          } finally {
+            if (_didIteratorError4) {
+              throw _iteratorError4;
+            }
+          }
+        }
+
         this.vmComputations.forEach(function (c) {
           return c.stop();
         });
@@ -311,11 +516,20 @@ var ViewModel = function () {
       };
     }
   }, {
+    key: 'prepareComponentDidUpdate',
+    value: function prepareComponentDidUpdate(component) {
+      var old = component.componentDidUpdate;
+      component.componentDidUpdate = function () {
+        component.vmChanged = false;
+        if (old) old.call(component);
+      };
+    }
+  }, {
     key: 'prepareShouldComponentUpdate',
     value: function prepareShouldComponentUpdate(component) {
       if (!component.shouldComponentUpdate) {
         component.shouldComponentUpdate = function () {
-          return !!(this.state && this.state.vmChanged);
+          return !!component.vmChanged;
         };
       }
     }
@@ -337,7 +551,8 @@ var ViewModel = function () {
       var dependency = new ViewModel.Tracker.Dependency();
       var oldChanged = dependency.changed.bind(dependency);
       dependency.changed = function () {
-        component.setState({ vmChanged: true });
+        component.setState({});
+        component.vmChanged = true;
         oldChanged();
       };
       var array = new _reactiveArray2.default([], dependency);
@@ -355,22 +570,161 @@ var ViewModel = function () {
       component.children = funProp;
     }
   }, {
+    key: 'loadMixinShare',
+    value: function loadMixinShare(toLoad, collection, component) {
+      if (!toLoad) return;
+      if (toLoad instanceof Array) {
+        var _iteratorNormalCompletion5 = true;
+        var _didIteratorError5 = false;
+        var _iteratorError5 = undefined;
+
+        try {
+          for (var _iterator5 = toLoad[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+            var element = _step5.value;
+
+            if (_helper2.default.isString(element)) {
+              component.load(collection[element]);
+            } else {
+              ViewModel.loadMixinShare(element, collection, component);
+            }
+          }
+        } catch (err) {
+          _didIteratorError5 = true;
+          _iteratorError5 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion5 && _iterator5.return) {
+              _iterator5.return();
+            }
+          } finally {
+            if (_didIteratorError5) {
+              throw _iteratorError5;
+            }
+          }
+        }
+      } else if (_helper2.default.isString(toLoad)) {
+        component.load(collection[toLoad]);
+      } else {
+        for (var ref in toLoad) {
+          var container = {};
+          var mixshare = toLoad[ref];
+          if (mixshare instanceof Array) {
+            var _iteratorNormalCompletion6 = true;
+            var _didIteratorError6 = false;
+            var _iteratorError6 = undefined;
+
+            try {
+              for (var _iterator6 = mixshare[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+                var item = _step6.value;
+
+                ViewModel.load(collection[item], container, component);
+              }
+            } catch (err) {
+              _didIteratorError6 = true;
+              _iteratorError6 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion6 && _iterator6.return) {
+                  _iterator6.return();
+                }
+              } finally {
+                if (_didIteratorError6) {
+                  throw _iteratorError6;
+                }
+              }
+            }
+          } else {
+            ViewModel.load(collection[mixshare], container, component);
+          }
+          component[ref] = container;
+        }
+      }
+    }
+  }, {
+    key: 'prepareLoad',
+    value: function prepareLoad(component) {
+      component.load = function (toLoad) {
+        if (!toLoad) return;
+
+        // Shared
+        ViewModel.loadMixinShare(toLoad.share, ViewModel.shared, component);
+
+        // Mixins
+        ViewModel.loadMixinShare(toLoad.mixin, ViewModel.mixins, component);
+
+        // Whatever is in 'load' is loaded before direct properties
+        component.load(toLoad.load);
+
+        // Load the object into the component
+        // (direct properties)
+        ViewModel.load(toLoad, component);
+
+        var hooks = {
+          created: 'vmCreated',
+          rendered: 'vmRendered',
+          destroyed: 'vmDestroyed',
+          autorun: 'vmAutorun'
+        };
+
+        for (var hook in hooks) {
+          if (!toLoad[hook]) continue;
+          var vmProp = hooks[hook];
+          if (toLoad[hook] instanceof Array) {
+            for (var item in toLoad[hook]) {
+              component[vmProp].push(item);
+            }
+          } else {
+            component[vmProp].push(toLoad[hook]);
+          }
+        }
+      };
+    }
+  }, {
     key: 'prepareComponent',
     value: function prepareComponent(componentName, component, initial) {
       component.vmId = ViewModel.nextId();
       component.vmComponentName = componentName;
       component.vmComputations = [];
-      component.vmOnCreated = [];
-      component.vmOnRendered = [];
-      component.vmOnDestroyed = [];
+      component.vmCreated = [];
+      component.vmRendered = [];
+      component.vmDestroyed = [];
       component.vmAutorun = [];
-      component.load = function (obj) {
-        return ViewModel.load(obj, component);
-      };
+
+      ViewModel.add(component);
+
+      ViewModel.prepareLoad(component);
+      var _iteratorNormalCompletion7 = true;
+      var _didIteratorError7 = false;
+      var _iteratorError7 = undefined;
+
+      try {
+        for (var _iterator7 = ViewModel.globals[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+          var global = _step7.value;
+
+          component.load(global);
+        }
+      } catch (err) {
+        _didIteratorError7 = true;
+        _iteratorError7 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion7 && _iterator7.return) {
+            _iterator7.return();
+          }
+        } finally {
+          if (_didIteratorError7) {
+            throw _iteratorError7;
+          }
+        }
+      }
+
+      component.load(initial);
 
       ViewModel.prepareChildren(component);
       ViewModel.prepareMethodsAndProperties(component, initial);
       ViewModel.prepareComponentWillMount(component);
+      ViewModel.prepareComponentDidMount(component);
+      ViewModel.prepareComponentDidUpdate(component);
       ViewModel.prepareComponentWillUnmount(component);
       ViewModel.prepareShouldComponentUpdate(component);
     }
@@ -410,7 +764,7 @@ ViewModel.reserved = {
   vmAutorun: 1,
   vmEvents: 1,
   vmInitial: 1,
-  vmProp: 1,
+  vmPropId: 1,
   templateInstance: 1,
   parent: 1,
   children: 1,
@@ -436,3 +790,8 @@ ViewModel.reactKeyword = {
   componentDidMount: 1,
   componentWillUnmount: 1
 };
+
+ViewModel.globals = [];
+ViewModel.components = {};
+ViewModel.mixins = {};
+ViewModel.shared = {};

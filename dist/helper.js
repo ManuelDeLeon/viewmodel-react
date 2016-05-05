@@ -79,7 +79,7 @@ var Helper = function () {
   }, {
     key: 'isObject',
     value: function isObject(obj) {
-      return (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === "object" && obj !== null;
+      return (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === "object" && obj !== null && !(obj instanceof Date);
     }
   }, {
     key: 'isFunction',
