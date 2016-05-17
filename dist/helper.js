@@ -97,9 +97,6 @@ var Helper = function () {
       return !isNaN(parseFloat(n)) && isFinite(n);
     }
   }, {
-    key: 'parseBind',
-    value: function parseBind() {}
-  }, {
     key: 'isQuoted',
     value: function isQuoted(str) {
       return Helper.stringRegex.test(str);

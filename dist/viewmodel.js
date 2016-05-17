@@ -18,6 +18,14 @@ var _reactiveArray = require('./reactive-array');
 
 var _reactiveArray2 = _interopRequireDefault(_reactiveArray);
 
+var _viewmodelProperty = require('./viewmodel-property');
+
+var _viewmodelProperty2 = _interopRequireDefault(_viewmodelProperty);
+
+var _parseBind2 = require('./parseBind');
+
+var _parseBind3 = _interopRequireDefault(_parseBind2);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -113,22 +121,50 @@ var ViewModel = function () {
       dependency.changed = function () {
         for (var key in components) {
           var c = components[key];
-          c.setState({});
-          c.vmChanged = true;
+          if (!c.vmChanged) {
+            c.vmChanged = true;
+            c.setState({});
+          }
         }
         oldChanged();
       };
 
-      var initialValue = _helper2.default.isArray(initial) ? new _reactiveArray2.default(initial, dependency) : initial;
-      var _value = initialValue;
+      var initialValue = initial instanceof ViewModel.Property ? initial.defaultValue : initial;
+      var _value = undefined;
+      var reset = function reset() {
+        if (initialValue instanceof Array) {
+          _value = new _reactiveArray2.default(initialValue, dependency);
+        } else {
+          _value = initialValue;
+        }
+      };
+
+      reset();
+
+      var validator = initial instanceof ViewModel.Property ? initial : ViewModel.Property.validator(initial);
+
       var changeValue = function changeValue(value) {
+        if (validator.beforeUpdates.length) {
+          validator.beforeValueUpdate(_value, component);
+        }
+
         if (value instanceof Array) {
           _value = new _reactiveArray2.default(value, dependency);
         } else {
           _value = value;
         }
+
+        if (validator.convertIns.length) {
+          _value = validator.convertValueIn(_value, component);
+        }
+
+        if (validator.afterUpdates.length) {
+          validator.afterValueUpdate(_value, component);
+        }
+
         return dependency.changed();
       };
+
       var funProp = function funProp(value) {
         if (arguments.length) {
           if (_value !== value) {
@@ -143,14 +179,14 @@ var ViewModel = function () {
         } else {
           dependency.depend();
         }
-        return _value;
+        if (validator.convertOuts.length) {
+          return validator.convertValueOut(_value, component);
+        } else {
+          return _value;
+        }
       };
       funProp.reset = function () {
-        if (_value instanceof _reactiveArray2.default) {
-          _value = new _reactiveArray2.default(initial, dependency);
-        } else {
-          _value = initialValue;
-        }
+        reset();
         dependency.changed();
       };
       funProp.depend = function () {
@@ -169,6 +205,76 @@ var ViewModel = function () {
           return _value;
         }
       });
+
+      var hasAsync = validator.hasAsync();
+      var validDependency = hasAsync && new _tracker2.default.Dependency();
+      var validatingItems = hasAsync && new _reactiveArray2.default([], new ViewModel.Tracker.Dependency());
+      var validationAsync = {};
+
+      var getDone = hasAsync ? function (initialValue) {
+        validatingItems.push(1);
+        return function (result) {
+          validatingItems.pop();
+
+          if (_value === initialValue && validationAsync.value !== _value) {
+            validationAsync = {
+              value: _value,
+              result: result
+            };
+          }
+          component.vmChanged = true;
+          component.setState({});
+        };
+      } : void 0;
+
+      funProp.valid = function (noAsync) {
+
+        dependency.depend();
+        if (hasAsync) {
+          validDependency.depend();
+        }
+        if (validationAsync.value === _value) {
+          var retVal = validationAsync.result;
+          if (!validatingItems.length) {
+            //validationAsync = {};
+          }
+          return retVal;
+        } else {
+          if (hasAsync && !noAsync) {
+            validator.verifyAsync(_value, getDone(_value), component);
+          }
+          return validator.verify(_value, component);
+        }
+      };
+
+      funProp.validMessage = function () {
+        return validator.validMessageValue;
+      };
+
+      funProp.invalid = function (noAsync) {
+        return !this.valid(noAsync);
+      };
+
+      funProp.invalidMessage = function () {
+        return validator.invalidMessageValue;
+      };
+
+      funProp.validating = function () {
+        if (!hasAsync) {
+          return false;
+        }
+        validatingItems.depend();
+        return !!validatingItems.length;
+      };
+
+      funProp.message = function () {
+        if (this.valid(true)) {
+          return validator.validMessageValue;
+        } else {
+          return validator.invalidMessageValue;
+        }
+      };
+
       return funProp;
     }
   }, {
@@ -184,7 +290,7 @@ var ViewModel = function () {
     }
   }, {
     key: 'getValue',
-    value: function getValue(container, bindValue, viewmodel) {
+    value: function getValue(container, bindValue, viewmodel, funPropReserved) {
       var value = void 0;
       if (arguments.length < 3) viewmodel = container;
       bindValue = bindValue.trim();
@@ -212,14 +318,15 @@ var ViewModel = function () {
         var parenIndexEnd = _helper2.default.getMatchingParenIndex(bindValue, parenIndexStart);
         var breakOnFirstDot = ~dotIndex && (! ~parenIndexStart || dotIndex < parenIndexStart || dotIndex === parenIndexEnd + 1);
         if (breakOnFirstDot) {
-          var newContainer = ViewModel.getValue(container, bindValue.substring(0, dotIndex), viewmodel);
           var newBindValue = bindValue.substring(dotIndex + 1);
+          var newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
+          var newContainer = ViewModel.getValue(container, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
           value = ViewModel.getValue(newContainer, newBindValue, viewmodel);
         } else {
           var name = bindValue;
           var args = [];
           if (~parenIndexStart) {
-            var parsed = _helper2.default.parseBind(bindValue);
+            var parsed = ViewModel.parseBind(bindValue);
             name = Object.keys(parsed)[0];
             var second = parsed[name];
             if (second.length > 2) {
@@ -260,7 +367,7 @@ var ViewModel = function () {
           } else if (primitive || !name in container) {
             value = _helper2.default.getPrimitive(name);
           } else {
-            if (_helper2.default.isFunction(container[name])) {
+            if (!funPropReserved && _helper2.default.isFunction(container[name])) {
               value = container[name].apply(container, args);
             } else {
               value = container[name];
@@ -318,6 +425,28 @@ var ViewModel = function () {
       };
     }
   }, {
+    key: 'getClass',
+    value: function getClass(component, initialClass, bindText) {
+      var cssClass = [initialClass];
+      if (bindText.trim()[0] === '{') {
+        var cssObj = JSON.parse(bindText);
+        for (var key in cssObj) {
+          var value = cssObj[key];
+          if (ViewModel.getValue(component, value)) {
+            cssClass.push(key);
+          }
+        }
+      } else {
+        cssClass.push(ViewModel.getValue(component, bindText));
+      }
+      return cssClass.join(' ');
+    }
+  }, {
+    key: 'parseBind',
+    value: function parseBind(str) {
+      return (0, _parseBind3.default)(str);
+    }
+  }, {
     key: 'load',
     value: function load(toLoad, container) {
       var component = arguments.length <= 2 || arguments[2] === undefined ? container : arguments[2];
@@ -369,7 +498,6 @@ var ViewModel = function () {
           component.setState({});
         }
       });
-
       return retValue;
     }
   }, {
@@ -551,8 +679,8 @@ var ViewModel = function () {
       var dependency = new ViewModel.Tracker.Dependency();
       var oldChanged = dependency.changed.bind(dependency);
       dependency.changed = function () {
-        component.setState({});
         component.vmChanged = true;
+        component.setState({});
         oldChanged();
       };
       var array = new _reactiveArray2.default([], dependency);
@@ -568,6 +696,63 @@ var ViewModel = function () {
         }
       };
       component.children = funProp;
+    }
+  }, {
+    key: 'prepareValidations',
+    value: function prepareValidations(component) {
+
+      component.valid = function () {
+        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+
+        for (var prop in component) {
+          if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+            if (!component[prop].valid(true)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      };
+
+      component.validMessages = function () {
+        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+
+        var messages = [];
+        for (var prop in component) {
+          if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+            if (component[prop].valid(true)) {
+              var message = component[prop].message();
+              if (message) {
+                messages.push(message);
+              }
+            }
+          }
+        }
+        return messages;
+      };
+
+      component.invalid = function () {
+        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+
+        return !component.valid(fields);
+      };
+
+      component.invalidMessages = function () {
+        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+
+        var messages = [];
+        for (var prop in component) {
+          if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+            if (!component[prop].valid(true)) {
+              var message = component[prop].message();
+              if (message) {
+                messages.push(message);
+              }
+            }
+          }
+        }
+        return messages;
+      };
     }
   }, {
     key: 'loadMixinShare',
@@ -727,6 +912,7 @@ var ViewModel = function () {
       ViewModel.prepareComponentDidUpdate(component);
       ViewModel.prepareComponentWillUnmount(component);
       ViewModel.prepareShouldComponentUpdate(component);
+      ViewModel.prepareValidations(component);
     }
   }]);
 
@@ -791,7 +977,24 @@ ViewModel.reactKeyword = {
   componentWillUnmount: 1
 };
 
+ViewModel.funPropReserved = {
+  valid: 1,
+  validMessage: 1,
+  invalid: 1,
+  invalidMessage: 1,
+  validating: 1,
+  message: 1
+};
+
 ViewModel.globals = [];
 ViewModel.components = {};
 ViewModel.mixins = {};
 ViewModel.shared = {};
+
+Object.defineProperties(ViewModel, {
+  "property": { get: function get() {
+      return new _viewmodelProperty2.default();
+    } }
+});
+
+ViewModel.Property = _viewmodelProperty2.default;

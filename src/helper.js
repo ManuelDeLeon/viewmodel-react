@@ -61,10 +61,6 @@ export default class Helper {
   static isString(str) { return typeof str === 'string' || str instanceof String; }
   static isNumeric(n) { return !isNaN(parseFloat(n)) && isFinite(n); }
   
-  static parseBind() {
-    
-  }
-  
   static isQuoted(str) {
     return Helper.stringRegex.test(str);
   }

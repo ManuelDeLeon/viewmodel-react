@@ -1,6 +1,8 @@
 import Tracker from './tracker';
 import H from './helper';
 import ReactiveArray from './reactive-array';
+import Property from './viewmodel-property';
+import parseBind from './parseBind';
 
 export default class ViewModel {
   static nextId() { return H.nextId++;}
@@ -78,22 +80,50 @@ export default class ViewModel {
     dependency.changed = function() {
       for(let key in components){
         let c = components[key];
-        c.setState({ });
-        c.vmChanged = true
+        if (!c.vmChanged) {
+          c.vmChanged = true
+          c.setState({});
+        }
       }
       oldChanged();
     }
     
-    const initialValue = H.isArray(initial) ? new ReactiveArray(initial, dependency) : initial;
-    let _value = initialValue;
+    const initialValue = initial instanceof ViewModel.Property ? initial.defaultValue : initial;
+    let _value = undefined;
+    const reset = function() {
+      if (initialValue instanceof Array) {
+        _value = new ReactiveArray(initialValue, dependency);
+      } else {
+        _value = initialValue;
+      }
+    }
+
+    reset();
+
+    const validator = initial instanceof ViewModel.Property ? initial : ViewModel.Property.validator(initial);
+
     const changeValue = function(value) {
+      if (validator.beforeUpdates.length) {
+        validator.beforeValueUpdate(_value, component);
+      }
+
       if (value instanceof Array) {
         _value = new ReactiveArray(value, dependency);
       } else {
         _value = value;
       }
+
+      if (validator.convertIns.length){
+        _value = validator.convertValueIn(_value, component);
+      }
+
+      if (validator.afterUpdates.length) {
+        validator.afterValueUpdate(_value, component);
+      }
+
       return dependency.changed();
     };
+
     const funProp = function(value) {
       if (arguments.length) {
         if (_value !== value) {
@@ -106,14 +136,14 @@ export default class ViewModel {
       } else {
         dependency.depend();
       }
-      return _value;
+      if (validator.convertOuts.length) {
+        return validator.convertValueOut(_value, component);
+      } else {
+        return _value;
+      }
     };
     funProp.reset = function() {
-      if (_value instanceof ReactiveArray) {
-        _value = new ReactiveArray(initial, dependency);
-      } else {
-        _value = initialValue;
-      }
+      reset();
       dependency.changed();
     };
     funProp.depend = function() {
@@ -132,6 +162,76 @@ export default class ViewModel {
         return _value;
       }
     });
+
+    const hasAsync = validator.hasAsync();
+    const validDependency = hasAsync && new Tracker.Dependency();
+    const validatingItems = hasAsync && new ReactiveArray([], new ViewModel.Tracker.Dependency());
+    let validationAsync = {};
+
+    const getDone = hasAsync ? function(initialValue) {
+      validatingItems.push(1);
+      return function(result) {
+        validatingItems.pop();
+
+        if (_value === initialValue && validationAsync.value !== _value) {
+          validationAsync = {
+            value: _value,
+            result: result
+          };
+        }
+        component.vmChanged = true;
+        component.setState({});
+      };
+    } : void 0;
+
+    funProp.valid = function(noAsync) {
+
+      dependency.depend();
+      if (hasAsync) {
+        validDependency.depend();
+      }
+      if ( validationAsync.value === _value ) {
+        let retVal = validationAsync.result;
+        if (!validatingItems.length) {
+           //validationAsync = {};
+        }
+        return retVal;
+      } else {
+        if (hasAsync && !noAsync) {
+          validator.verifyAsync(_value, getDone(_value), component);
+        }
+        return validator.verify(_value, component);
+      }
+    };
+
+    funProp.validMessage = function() {
+      return validator.validMessageValue;
+    };
+
+    funProp.invalid = function(noAsync) {
+      return !this.valid(noAsync);
+    };
+
+    funProp.invalidMessage = function() {
+      return validator.invalidMessageValue;
+    };
+
+    funProp.validating = function() {
+      if (!hasAsync) {
+        return false;
+      }
+      validatingItems.depend();
+      return !!validatingItems.length;
+    };
+
+    funProp.message = function() {
+      if (this.valid(true)) {
+        return validator.validMessageValue;
+      } else {
+        return validator.invalidMessageValue;
+      }
+    };
+    
     return funProp;
   };
 
@@ -139,15 +239,17 @@ export default class ViewModel {
     return function(element) {
       container.vmAutorun.push(
         ViewModel.Tracker.autorun(function() {
-          if(element && container[prop]() != element.value) {
-            element.value = container[prop]();
+          let value = container[prop]();
+          value = value == null ? "": value;
+          if(element && value != element.value) {
+            element.value = value;
           }
         })
       )
     }
   }
 
-  static getValue(container, bindValue, viewmodel) {
+  static getValue(container, bindValue, viewmodel, funPropReserved) {
     let value;
     if (arguments.length < 3) viewmodel = container;
     bindValue = bindValue.trim();
@@ -173,14 +275,15 @@ export default class ViewModel {
       const parenIndexEnd = H.getMatchingParenIndex(bindValue, parenIndexStart);
       const breakOnFirstDot = ~dotIndex && (!~parenIndexStart || dotIndex < parenIndexStart || dotIndex === (parenIndexEnd + 1));
       if (breakOnFirstDot) {
-        const newContainer = ViewModel.getValue(container, bindValue.substring(0, dotIndex), viewmodel);
         const newBindValue = bindValue.substring(dotIndex + 1);
-        value = ViewModel.getValue(newContainer, newBindValue, viewmodel);
+        const newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
+        const newContainer = ViewModel.getValue( container, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
+        value = ViewModel.getValue( newContainer, newBindValue, viewmodel );
       } else {
         let name = bindValue;
         const args = [];
         if (~parenIndexStart) {
-          const parsed = H.parseBind(bindValue);
+          const parsed = ViewModel.parseBind(bindValue);
           name = Object.keys(parsed)[0];
           const second = parsed[name];
           if (second.length > 2) {
@@ -221,7 +324,7 @@ export default class ViewModel {
         } else if (primitive || !name in container) {
           value = H.getPrimitive(name);
         } else {
-          if (H.isFunction(container[name])) {
+          if (!funPropReserved && H.isFunction(container[name])) {
             value = container[name].apply(container, args);
           } else {
             value = container[name];
@@ -276,6 +379,26 @@ export default class ViewModel {
     }
   };
 
+  static getClass(component, initialClass, bindText) {
+    const cssClass = [initialClass];
+    if (bindText.trim()[0] === '{') {
+      const cssObj = JSON.parse(bindText);
+      for(let key in cssObj) {
+        let value = cssObj[key];
+        if (ViewModel.getValue(component, value)) {
+          cssClass.push( key );
+        }
+      }
+    } else {
+      cssClass.push( ViewModel.getValue(component, bindText) );
+    }
+    return cssClass.join(' ');
+  };
+
+  static parseBind(str) {
+    return parseBind(str);
+  }
+
   static load(toLoad, container, component = container) {
     const loadObj = function(obj) {
       for (let key in obj) {
@@ -321,8 +444,6 @@ export default class ViewModel {
           component.setState( { });
         }
       });
-
-
     return retValue;
   }
 
@@ -405,8 +526,8 @@ export default class ViewModel {
     const dependency = new ViewModel.Tracker.Dependency();
     const oldChanged = dependency.changed.bind(dependency);
     dependency.changed = function() {
-      component.setState({ });
       component.vmChanged = true;
+      component.setState({ });
       oldChanged();
     }
     const array = new ReactiveArray([], dependency);
@@ -420,6 +541,54 @@ export default class ViewModel {
       }
     }
     component.children = funProp;
+  }
+
+  static prepareValidations(component) {
+
+    component.valid = function(fields = []) {
+      for(let prop in component){
+        if(component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+          if(!component[prop].valid(true)){
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    component.validMessages = function(fields = []) {
+      const messages = [];
+      for(let prop in component){
+        if(component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+          if(component[prop].valid(true)){
+            let message = component[prop].message();
+            if (message) {
+              messages.push(message);
+            }
+          }
+        }
+      }
+      return messages;
+    }
+
+    component.invalid = function(fields = []) {
+      return !component.valid(fields);
+    }
+
+    component.invalidMessages = function(fields = []) {
+      const messages = [];
+      for(let prop in component){
+        if(component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+          if(!component[prop].valid(true)){
+            let message = component[prop].message();
+            if (message) {
+              messages.push(message);
+            }
+          }
+        }
+      }
+      return messages;
+    }
   }
 
   static loadMixinShare(toLoad, collection, component) {
@@ -512,6 +681,7 @@ export default class ViewModel {
     ViewModel.prepareComponentDidUpdate(component);
     ViewModel.prepareComponentWillUnmount(component);
     ViewModel.prepareShouldComponentUpdate(component);
+    ViewModel.prepareValidations(component);
   }
 }
 
@@ -570,7 +740,22 @@ ViewModel.reactKeyword = {
   componentWillUnmount: 1
 };
 
+ViewModel.funPropReserved = {
+  valid: 1,
+  validMessage: 1,
+  invalid: 1,
+  invalidMessage: 1,
+  validating: 1,
+  message: 1
+};
+
 ViewModel.globals = [];
 ViewModel.components = {};
 ViewModel.mixins = {};
 ViewModel.shared = {};
+
+Object.defineProperties(ViewModel, {
+  "property": { get: function () { return new Property; } }
+});
+
+ViewModel.Property = Property;
