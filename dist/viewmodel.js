@@ -282,8 +282,22 @@ var ViewModel = function () {
     value: function getValueRef(container, prop) {
       return function (element) {
         container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
-          if (element && container[prop]() != element.value) {
-            element.value = container[prop]();
+          var value = container[prop]();
+          value = value == null ? "" : value;
+          if (element && value != element.value) {
+            element.value = value;
+          }
+        }));
+      };
+    }
+  }, {
+    key: 'getCheckRef',
+    value: function getCheckRef(container, prop) {
+      return function (element) {
+        container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
+          var value = container[prop]();
+          if (element && value != element.checked) {
+            element.checked = value;
           }
         }));
       };
@@ -422,6 +436,14 @@ var ViewModel = function () {
       var valueSetter = ViewModel.setValue(viewmodel, bindValue);
       return function (event) {
         valueSetter(event.target.value);
+      };
+    }
+  }, {
+    key: 'setInputCheck',
+    value: function setInputCheck(viewmodel, bindValue) {
+      var valueSetter = ViewModel.setValue(viewmodel, bindValue);
+      return function (event) {
+        valueSetter(event.target.checked);
       };
     }
   }, {
