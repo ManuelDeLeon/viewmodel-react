@@ -262,6 +262,22 @@ export default class ViewModel {
     }
   }
 
+  static getGroupRef(container, prop) {
+    return function(element) {
+      container.vmAutorun.push(
+        ViewModel.Tracker.autorun(function() {
+          let array = container[prop]();
+          if (!element) return;
+          let inArray = !!~array.indexOf(element.value);
+
+          if(element.checked != inArray) {
+            element.checked = inArray;
+          }
+        })
+      )
+    }
+  }
+
   static getValue(container, bindValue, viewmodel, funPropReserved) {
     let value;
     if (arguments.length < 3) viewmodel = container;
@@ -301,7 +317,7 @@ export default class ViewModel {
           const second = parsed[name];
           if (second.length > 2) {
             const ref1 = second.substr(1, second.length - 2).split(',');
-            for (j = 0, len = ref1.length; j < len; j++) {
+            for (let j = 0, len = ref1.length; j < len; j++) {
               let arg = ref1[j].trim();
               let newArg;
               if (arg === "this") {
@@ -396,6 +412,21 @@ export default class ViewModel {
     var valueSetter = ViewModel.setValue(viewmodel, bindValue);
     return function(event) {
       valueSetter(event.target.checked);
+    }
+  };
+
+  static setInputGroup(viewmodel, bindValue) {
+
+    return function(event) {
+      const array = ViewModel.getValue(viewmodel, bindValue);
+      const elementValue = event.target.value
+      if (event.target.checked) {
+        if (!~array.indexOf(elementValue)) {
+          array.push(elementValue);
+        }
+      } else {
+        array.remove(elementValue);
+      }
     }
   };
 
