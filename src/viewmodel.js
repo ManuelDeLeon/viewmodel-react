@@ -249,6 +249,19 @@ export default class ViewModel {
     }
   }
 
+  static getCheckRef(container, prop) {
+    return function(element) {
+      container.vmAutorun.push(
+        ViewModel.Tracker.autorun(function() {
+          let value = container[prop]();
+          if(element && value != element.checked) {
+            element.checked = value;
+          }
+        })
+      )
+    }
+  }
+
   static getValue(container, bindValue, viewmodel, funPropReserved) {
     let value;
     if (arguments.length < 3) viewmodel = container;
@@ -376,6 +389,13 @@ export default class ViewModel {
     var valueSetter = ViewModel.setValue(viewmodel, bindValue);
     return function(event) {
       valueSetter(event.target.value);
+    }
+  };
+
+  static setInputCheck(viewmodel, bindValue) {
+    var valueSetter = ViewModel.setValue(viewmodel, bindValue);
+    return function(event) {
+      valueSetter(event.target.checked);
     }
   };
 
