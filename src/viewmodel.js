@@ -249,24 +249,58 @@ export default class ViewModel {
     }
   }
 
-  static getCheckRef(container, prop) {
+  static getCheckHook(container, prop) {
+    var valueSetter = ViewModel.setValue(container, prop);
     return function(element) {
+      if (!element || element.vmCheckHook) return;
+      element.vmCheckHook = true;
+
+      const changeListener = function() {
+          valueSetter(element.checked);
+      }
+      element.addEventListener('change', changeListener);
+      container.vmDestroyed.push( () => {
+        element.removeEventListener('change', changeListener)
+      });
+
       container.vmAutorun.push(
-        ViewModel.Tracker.autorun(function() {
-          let value = container[prop]();
-          if(element && value != element.checked) {
+        ViewModel.Tracker.autorun(() => {
+
+          var value = ViewModel.getValue(container, prop);
+          if (element && value != element.checked) {
             element.checked = value;
           }
         })
-      )
+      );
     }
   }
 
-  static getGroupRef(container, prop) {
+  static getGroupHook(container, prop, hasCheck, checkProp) {
+    let checkHook = hasCheck && ViewModel.getCheckHook(container, checkProp);
     return function(element) {
+      if (checkHook) checkHook(element);
+      if (!element || element.vmGroupHook) return;
+      element.vmGroupHook = true;
+
+      const changeListener = function() {
+        const array = ViewModel.getValue(container, prop);
+        const elementValue = element.value
+        if (element.checked) {
+          if (!~array.indexOf(elementValue)) {
+            array.push(elementValue);
+          }
+        } else {
+          array.remove(elementValue);
+        }
+      }
+      element.addEventListener('change', changeListener);
+      container.vmDestroyed.push( () => {
+        element.removeEventListener('change', changeListener)
+      });
+
       container.vmAutorun.push(
         ViewModel.Tracker.autorun(function() {
-          let array = container[prop]();
+          let array = ViewModel.getValue(container, prop);
           if (!element) return;
           let inArray = !!~array.indexOf(element.value);
 
@@ -485,16 +519,18 @@ export default class ViewModel {
     // Stop it just in case the autorun never re-ran
     if (component[name] && !component[name].stopped) component[name].stop();
 
-    component[name] = ViewModel.Tracker.autorun(c => {
+    component[name] = ViewModel.Tracker.nonreactive(() => {
+      return ViewModel.Tracker.autorun(c => {
         if (c.firstRun) {
           retValue = renderFunc.call(component);
         } else {
           // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
           // important though.
           if (component[name]) component[name].stop();
-          component.setState( { });
+          component.setState({});
         }
       });
+    });
     return retValue;
   }
 
@@ -578,7 +614,7 @@ export default class ViewModel {
     const oldChanged = dependency.changed.bind(dependency);
     dependency.changed = function() {
       component.vmChanged = true;
-      component.setState({ });
+      component.setState({});
       oldChanged();
     }
     const array = new ReactiveArray([], dependency);
