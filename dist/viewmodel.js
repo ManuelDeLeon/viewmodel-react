@@ -291,11 +291,24 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'getCheckRef',
-    value: function getCheckRef(container, prop) {
+    key: 'getCheckHook',
+    value: function getCheckHook(container, prop) {
+      var valueSetter = ViewModel.setValue(container, prop);
       return function (element) {
+        if (!element || element.vmCheckHook) return;
+        element.vmCheckHook = true;
+
+        var changeListener = function changeListener() {
+          valueSetter(element.checked);
+        };
+        element.addEventListener('change', changeListener);
+        container.vmDestroyed.push(function () {
+          element.removeEventListener('change', changeListener);
+        });
+
         container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
-          var value = container[prop]();
+
+          var value = ViewModel.getValue(container, prop);
           if (element && value != element.checked) {
             element.checked = value;
           }
@@ -303,11 +316,32 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'getGroupRef',
-    value: function getGroupRef(container, prop) {
+    key: 'getGroupHook',
+    value: function getGroupHook(container, prop, hasCheck, checkProp) {
+      var checkHook = hasCheck && ViewModel.getCheckHook(container, checkProp);
       return function (element) {
+        if (checkHook) checkHook(element);
+        if (!element || element.vmGroupHook) return;
+        element.vmGroupHook = true;
+
+        var changeListener = function changeListener() {
+          var array = ViewModel.getValue(container, prop);
+          var elementValue = element.value;
+          if (element.checked) {
+            if (! ~array.indexOf(elementValue)) {
+              array.push(elementValue);
+            }
+          } else {
+            array.remove(elementValue);
+          }
+        };
+        element.addEventListener('change', changeListener);
+        container.vmDestroyed.push(function () {
+          element.removeEventListener('change', changeListener);
+        });
+
         container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
-          var array = container[prop]();
+          var array = ViewModel.getValue(container, prop);
           if (!element) return;
           var inArray = !! ~array.indexOf(element.value);
 
@@ -541,15 +575,17 @@ var ViewModel = function () {
       // Stop it just in case the autorun never re-ran
       if (component[name] && !component[name].stopped) component[name].stop();
 
-      component[name] = ViewModel.Tracker.autorun(function (c) {
-        if (c.firstRun) {
-          retValue = renderFunc.call(component);
-        } else {
-          // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
-          // important though.
-          if (component[name]) component[name].stop();
-          component.setState({});
-        }
+      component[name] = ViewModel.Tracker.nonreactive(function () {
+        return ViewModel.Tracker.autorun(function (c) {
+          if (c.firstRun) {
+            retValue = renderFunc.call(component);
+          } else {
+            // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
+            // important though.
+            if (component[name]) component[name].stop();
+            component.setState({});
+          }
+        });
       });
       return retValue;
     }
