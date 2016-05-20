@@ -26,6 +26,10 @@ var _parseBind2 = require('./parseBind');
 
 var _parseBind3 = _interopRequireDefault(_parseBind2);
 
+var _reactDom = require('react-dom');
+
+var _reactDom2 = _interopRequireDefault(_reactDom);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -66,7 +70,8 @@ var ViewModel = function () {
         if (ViewModel.components[name]) collection = { all: ViewModel.components[name] };
       } else {
         collection = ViewModel.components;
-      };
+      }
+      ;
       if (!collection) return [];
       var result = [];
       for (var groupName in collection) {
@@ -292,15 +297,31 @@ var ViewModel = function () {
     }
   }, {
     key: 'getCheckHook',
-    value: function getCheckHook(container, prop) {
+    value: function getCheckHook(container, prop, isCheck) {
       var valueSetter = ViewModel.setValue(container, prop);
-      return function (element) {
-        if (!element || element.vmCheckHook) return;
+      return function (element, force) {
+        if (!force && (!element || element.vmCheckHook)) return;
         element.vmCheckHook = true;
 
         var changeListener = function changeListener() {
-          valueSetter(element.checked);
+          if (isCheck || element.type === "checkbox") {
+            valueSetter(element.checked);
+          } else if (element.type === "radio" && element.checked) {
+            valueSetter(element.value);
+            if (element.name) {
+              (function () {
+                var inputs = _reactDom2.default.findDOMNode(container).querySelectorAll('input[type=radio][name=' + element.name + ']');
+                var event = new Event('change');
+                Array.prototype.forEach.call(inputs, function (input, i) {
+                  if (input !== element) {
+                    input.dispatchEvent(event);
+                  }
+                });
+              })();
+            }
+          }
         };
+
         element.addEventListener('change', changeListener);
         container.vmDestroyed.push(function () {
           element.removeEventListener('change', changeListener);
@@ -309,8 +330,11 @@ var ViewModel = function () {
         container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
 
           var value = ViewModel.getValue(container, prop);
-          if (element && value != element.checked) {
-            element.checked = value;
+          var elementValue = element.type === "checkbox" ? element.checked : element.value;
+          if (element) {
+            if (value != element.checked) {
+              element.checked = value === elementValue;
+            }
           }
         }));
       };
@@ -318,11 +342,17 @@ var ViewModel = function () {
   }, {
     key: 'getGroupHook',
     value: function getGroupHook(container, prop, hasCheck, checkProp) {
-      var checkHook = hasCheck && ViewModel.getCheckHook(container, checkProp);
+      var checkHook = hasCheck && ViewModel.getCheckHook(container, checkProp, true);
       return function (element) {
-        if (checkHook) checkHook(element);
         if (!element || element.vmGroupHook) return;
         element.vmGroupHook = true;
+        if (checkHook) {
+          checkHook(element);
+        }
+        if (element.type === "radio") {
+          ViewModel.getCheckHook(container, prop)(element, true);
+          return;
+        }
 
         var changeListener = function changeListener() {
           var array = ViewModel.getValue(container, prop);

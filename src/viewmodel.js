@@ -3,22 +3,26 @@ import H from './helper';
 import ReactiveArray from './reactive-array';
 import Property from './viewmodel-property';
 import parseBind from './parseBind';
+import ReactDOM from 'react-dom';
 
 export default class ViewModel {
-  static nextId() { return H.nextId++;}
+  static nextId() {
+    return H.nextId++;
+  }
+
   static global(obj) {
     ViewModel.globals.push(obj);
   }
 
   static add(component) {
     const name = component.vmComponentName;
-    if (!ViewModel.components[name]){
+    if (!ViewModel.components[name]) {
       ViewModel.components[name] = {};
     }
     ViewModel.components[name][component.vmId] = component;
   }
 
-  static find(nameOrPredicate, predicateOrNothing, onlyOne = false){
+  static find(nameOrPredicate, predicateOrNothing, onlyOne = false) {
     const name = H.isString(nameOrPredicate) && nameOrPredicate;
     const predicate =
       (H.isFunction(predicateOrNothing) && predicateOrNothing)
@@ -26,15 +30,16 @@ export default class ViewModel {
     let collection;
     if (name) {
       if (ViewModel.components[name])
-        collection = { all: ViewModel.components[name] }
+        collection = {all: ViewModel.components[name]}
     } else {
       collection = ViewModel.components
-    };
-    if(!collection) return [];
+    }
+    ;
+    if (!collection) return [];
     const result = [];
-    for(let groupName in collection) {
+    for (let groupName in collection) {
       let group = collection[groupName];
-      for(let item in group) {
+      for (let item in group) {
         if (!predicate || predicate(group[item])) {
           result.push(group[item]);
           if (onlyOne) return result;
@@ -52,18 +57,18 @@ export default class ViewModel {
   }
 
   static mixin(obj) {
-    for(let key in obj){
+    for (let key in obj) {
       ViewModel.mixins[key] = obj[key];
     }
   }
 
   static share(obj) {
-    for(let key in obj) {
+    for (let key in obj) {
       ViewModel.shared[key] = {}
       let value = obj[key];
-      for(let prop in value){
+      for (let prop in value) {
         let content = value[prop];
-        if (H.isFunction(content) || ViewModel.properties[prop]){
+        if (H.isFunction(content) || ViewModel.properties[prop]) {
           ViewModel.shared[key][prop] = content;
         } else {
           ViewModel.shared[key][prop] = ViewModel.prop(content);
@@ -77,8 +82,8 @@ export default class ViewModel {
     const oldChanged = dependency.changed.bind(dependency);
     const components = {};
     if (component && !components[component.vmId]) components[component.vmId] = component;
-    dependency.changed = function() {
-      for(let key in components){
+    dependency.changed = function () {
+      for (let key in components) {
         let c = components[key];
         if (!c.vmChanged) {
           c.vmChanged = true
@@ -87,10 +92,10 @@ export default class ViewModel {
       }
       oldChanged();
     }
-    
+
     const initialValue = initial instanceof ViewModel.Property ? initial.defaultValue : initial;
     let _value = undefined;
-    const reset = function() {
+    const reset = function () {
       if (initialValue instanceof Array) {
         _value = new ReactiveArray(initialValue, dependency);
       } else {
@@ -102,7 +107,7 @@ export default class ViewModel {
 
     const validator = initial instanceof ViewModel.Property ? initial : ViewModel.Property.validator(initial);
 
-    const changeValue = function(value) {
+    const changeValue = function (value) {
       if (validator.beforeUpdates.length) {
         validator.beforeValueUpdate(_value, component);
       }
@@ -113,7 +118,7 @@ export default class ViewModel {
         _value = value;
       }
 
-      if (validator.convertIns.length){
+      if (validator.convertIns.length) {
         _value = validator.convertValueIn(_value, component);
       }
 
@@ -124,11 +129,13 @@ export default class ViewModel {
       return dependency.changed();
     };
 
-    const funProp = function(value) {
+    const funProp = function (value) {
       if (arguments.length) {
         if (_value !== value) {
           if (funProp.delay > 0) {
-            ViewModel.delay(funProp.delay, funProp.vmPropId, function() { changeValue(value) });
+            ViewModel.delay(funProp.delay, funProp.vmPropId, function () {
+              changeValue(value)
+            });
           } else {
             changeValue(value);
           }
@@ -142,20 +149,20 @@ export default class ViewModel {
         return _value;
       }
     };
-    funProp.reset = function() {
+    funProp.reset = function () {
       reset();
       dependency.changed();
     };
-    funProp.depend = function() {
+    funProp.depend = function () {
       dependency.depend();
     };
-    funProp.changed = function() {
+    funProp.changed = function () {
       dependency.changed();
     };
     funProp.delay = 0;
     funProp.vmPropId = ViewModel.nextId();
-    funProp.addComponent = function(component){
-      if (! components[component.vmId]) components[component.vmId] = component;
+    funProp.addComponent = function (component) {
+      if (!components[component.vmId]) components[component.vmId] = component;
     };
     Object.defineProperty(funProp, 'value', {
       get() {
@@ -168,9 +175,9 @@ export default class ViewModel {
     const validatingItems = hasAsync && new ReactiveArray([], new ViewModel.Tracker.Dependency());
     let validationAsync = {};
 
-    const getDone = hasAsync ? function(initialValue) {
+    const getDone = hasAsync ? function (initialValue) {
       validatingItems.push(1);
-      return function(result) {
+      return function (result) {
         validatingItems.pop();
 
         if (_value === initialValue && validationAsync.value !== _value) {
@@ -184,16 +191,16 @@ export default class ViewModel {
       };
     } : void 0;
 
-    funProp.valid = function(noAsync) {
+    funProp.valid = function (noAsync) {
 
       dependency.depend();
       if (hasAsync) {
         validDependency.depend();
       }
-      if ( validationAsync.value === _value ) {
+      if (validationAsync.value === _value) {
         let retVal = validationAsync.result;
         if (!validatingItems.length) {
-           //validationAsync = {};
+          //validationAsync = {};
         }
         return retVal;
       } else {
@@ -204,19 +211,19 @@ export default class ViewModel {
       }
     };
 
-    funProp.validMessage = function() {
+    funProp.validMessage = function () {
       return validator.validMessageValue;
     };
 
-    funProp.invalid = function(noAsync) {
+    funProp.invalid = function (noAsync) {
       return !this.valid(noAsync);
     };
 
-    funProp.invalidMessage = function() {
+    funProp.invalidMessage = function () {
       return validator.invalidMessageValue;
     };
 
-    funProp.validating = function() {
+    funProp.validating = function () {
       if (!hasAsync) {
         return false;
       }
@@ -224,24 +231,24 @@ export default class ViewModel {
       return !!validatingItems.length;
     };
 
-    funProp.message = function() {
+    funProp.message = function () {
       if (this.valid(true)) {
         return validator.validMessageValue;
       } else {
         return validator.invalidMessageValue;
       }
     };
-    
+
     return funProp;
   };
 
   static getValueRef(container, prop) {
-    return function(element) {
+    return function (element) {
       container.vmAutorun.push(
-        ViewModel.Tracker.autorun(function() {
+        ViewModel.Tracker.autorun(function () {
           let value = container[prop]();
-          value = value == null ? "": value;
-          if(element && value != element.value) {
+          value = value == null ? "" : value;
+          if (element && value != element.value) {
             element.value = value;
           }
         })
@@ -249,17 +256,31 @@ export default class ViewModel {
     }
   }
 
-  static getCheckHook(container, prop) {
+  static getCheckHook(container, prop, isCheck) {
     var valueSetter = ViewModel.setValue(container, prop);
-    return function(element) {
-      if (!element || element.vmCheckHook) return;
+    return function (element, force) {
+      if (!force && (!element || element.vmCheckHook)) return;
       element.vmCheckHook = true;
 
-      const changeListener = function() {
+      const changeListener = function () {
+        if (isCheck || element.type === "checkbox") {
           valueSetter(element.checked);
+        } else if (element.type === "radio" && element.checked) {
+          valueSetter(element.value);
+          if (element.name) {
+            const inputs = ReactDOM.findDOMNode(container).querySelectorAll(`input[type=radio][name=${element.name}]`);
+            const event = new Event('change');
+            Array.prototype.forEach.call(inputs, function (input, i) {
+              if (input !== element) {
+                input.dispatchEvent(event);
+              }
+            });
+          }
+        }
       }
+
       element.addEventListener('change', changeListener);
-      container.vmDestroyed.push( () => {
+      container.vmDestroyed.push(() => {
         element.removeEventListener('change', changeListener)
       });
 
@@ -267,8 +288,11 @@ export default class ViewModel {
         ViewModel.Tracker.autorun(() => {
 
           var value = ViewModel.getValue(container, prop);
-          if (element && value != element.checked) {
-            element.checked = value;
+          var elementValue = element.type === "checkbox" ? element.checked : element.value;
+          if (element) {
+            if (value != element.checked) {
+              element.checked = (value === elementValue);
+            }
           }
         })
       );
@@ -276,11 +300,17 @@ export default class ViewModel {
   }
 
   static getGroupHook(container, prop, hasCheck, checkProp) {
-    let checkHook = hasCheck && ViewModel.getCheckHook(container, checkProp);
+    let checkHook = hasCheck && ViewModel.getCheckHook(container, checkProp, true);
     return function(element) {
-      if (checkHook) checkHook(element);
       if (!element || element.vmGroupHook) return;
       element.vmGroupHook = true;
+      if (checkHook){
+        checkHook(element);
+      }
+      if (element.type === "radio") {
+        ViewModel.getCheckHook(container, prop)(element, true);
+        return;
+      }
 
       const changeListener = function() {
         const array = ViewModel.getValue(container, prop);
