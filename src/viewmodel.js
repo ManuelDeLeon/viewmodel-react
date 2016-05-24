@@ -4,6 +4,7 @@ import ReactiveArray from './reactive-array';
 import Property from './viewmodel-property';
 import parseBind from './parseBind';
 import ReactDOM from 'react-dom';
+import presetBindings from './bindings'
 
 export default class ViewModel {
   static nextId() {
@@ -430,6 +431,27 @@ export default class ViewModel {
     }
     return value;
   };
+  
+  static getVmValueGetter(component, bindValue) {
+    return function(optBindValue = bindValue){
+      return ViewModel.getValue(component, optBindValue.toString(), component)
+    }
+  }
+  
+  static getVmValueSetter(component, bindValue) {
+    if (!H.isString(bindValue)){
+      return function() {}  
+    }
+    if (~bindValue.indexOf(')', bindValue.length - 1)){
+      return function(){
+        return ViewModel.getValue(component, bindValue);
+      }
+    } else {
+      return function(value) {
+        ViewModel.setValueFull(value, component, bindValue, component);
+      }
+    }
+  }
 
   static setValueFull(value, container, bindValue, viewmodel) {
     var i, newBindValue, newContainer;
@@ -800,6 +822,120 @@ export default class ViewModel {
     ViewModel.prepareShouldComponentUpdate(component);
     ViewModel.prepareValidations(component);
   }
+
+  static addBinding(binding) {
+    if (!binding.priority) binding.priority = 1;
+    if (binding.selector) binding.priority += 1;
+    if (binding.bindIf) binding.priority += 1;
+    if (!ViewModel.bindings[binding.name]) {
+      ViewModel.bindings[binding.name] = [];
+    }
+    ViewModel.bindings[binding.name].push(binding);
+  }
+  
+  static bindElement(component, bindingText) {
+    return function(element) {
+      if (!element || element.vmBound) return;
+      element.vmBound = true;
+
+      const bindId = ViewModel.nextId();
+      const bindObject = ViewModel.parseBind(bindingText);
+      for (let bindName in bindObject) {
+        if (ViewModel.compiledBindings[bindName]) continue;
+        let bindValue = bindObject[bindName];
+        if (~bindName.indexOf(' ')) {
+          for (let bindNameSingle of bindName.split(' ')) {
+            ViewModel.bindSingle(component, bindObject, element, bindNameSingle, bindId);
+          }
+        } else {
+          ViewModel.bindSingle(component, bindObject, element, bindName, bindId);
+        }
+      }
+    }
+  }
+
+  static bindSingle(component, bindObject, element, bindName, bindId){
+    const bindArg = ViewModel.getBindArgument(component, bindObject, element, bindName, bindId);
+    const binding = ViewModel.getBinding(bindName, bindArg);
+    if (!binding) return;
+
+    if (binding.bind) {
+      binding.bind(bindArg);
+    }
+    if (binding.autorun){
+      bindArg.autorun( binding.autorun );
+    }
+
+    if (binding.events){
+      let func = function(eventName, eventFunc) {
+        const eventListener = function (event) {
+          eventFunc(bindArg, event)
+        }
+
+        bindArg.element.addEventListener(eventName, eventListener);
+        bindArg.component.vmDestroyed.push(() => {
+          bindArg.element.removeEventListener(eventName, eventListener)
+        });
+      }
+      for (let eventName in binding.events) {
+        let eventFunc = binding.events[eventName];
+        if (~eventName.indexOf(' ')) {
+          for(let event of eventName.split(' ')){
+            func(event, eventFunc);
+          }
+        } else {
+          func(eventName, eventFunc);
+        }
+
+      }
+    }
+
+  }
+  
+  static getBinding(bindName, bindArg) {
+    let binding = null;
+    let bindingArray = ViewModel.bindings[bindName];
+    if (bindingArray) {
+      if (bindingArray.length === 1 && !(bindingArray[0].bindIf || bindingArray[0].selector)) {
+        binding = bindingArray[0];
+      } else {
+        binding = bindingArray
+          .sort(function(a,b) { b.priority - a.priority })
+          .find(function(b){
+            return !( (b.bindIf && !b.bindIf(bindArg)) || (b.selector && !H.elementMatch(bindArg.element, b.selector)) );
+          });
+      }
+    }
+    return binding || ViewModel.getBinding('default', bindArg);
+  }
+
+  static getBindArgument(component, bindObject, element, bindName, bindId){
+    const getDelayedSetter = function(bindArg, setter) {
+      if (bindArg.elementBind.throttle) {
+        return function(...args) {
+          ViewModel.delay( bindArg.getVmValue(bindArg.elementBind.throttle), bindId, function(){ setter(...args) } );
+        }
+      } else {
+        return setter;
+      }
+    }
+    const bindArg = {
+      autorun: function(f){
+        let fun = function(c) { f(bindArg, c) };
+        component.vmAutorun.push( ViewModel.Tracker.autorun(fun) );
+      },
+      component: component,
+      element: element,
+      elementBind: bindObject,
+      bindName: bindName,
+      bindValue: bindObject[bindName],
+      getVmValue: ViewModel.getVmValueGetter(component, bindObject[bindName])
+    }
+    bindArg.setVmValue = getDelayedSetter( bindArg, ViewModel.getVmValueSetter(component, bindObject[bindName]) );
+    return bindArg;
+  }
+
+
 }
 
 ViewModel.Tracker = Tracker;
@@ -866,13 +1002,25 @@ ViewModel.funPropReserved = {
   message: 1
 };
 
+ViewModel.compiledBindings = {
+  text: 1,
+  html: 1,
+  'class': 1
+}
+
 ViewModel.globals = [];
 ViewModel.components = {};
 ViewModel.mixins = {};
 ViewModel.shared = {};
+ViewModel.bindings = {};
 
 Object.defineProperties(ViewModel, {
   "property": { get: function () { return new Property; } }
 });
 
 ViewModel.Property = Property;
+
+
+for(let binding of presetBindings) {
+  ViewModel.addBinding(binding);
+}

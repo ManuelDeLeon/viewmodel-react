@@ -30,6 +30,10 @@ var _reactDom = require('react-dom');
 
 var _reactDom2 = _interopRequireDefault(_reactDom);
 
+var _bindings = require('./bindings');
+
+var _bindings2 = _interopRequireDefault(_bindings);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -472,6 +476,31 @@ var ViewModel = function () {
         }
       }
       return value;
+    }
+  }, {
+    key: 'getVmValueGetter',
+    value: function getVmValueGetter(component, bindValue) {
+      return function () {
+        var optBindValue = arguments.length <= 0 || arguments[0] === undefined ? bindValue : arguments[0];
+
+        return ViewModel.getValue(component, optBindValue.toString(), component);
+      };
+    }
+  }, {
+    key: 'getVmValueSetter',
+    value: function getVmValueSetter(component, bindValue) {
+      if (!_helper2.default.isString(bindValue)) {
+        return function () {};
+      }
+      if (~bindValue.indexOf(')', bindValue.length - 1)) {
+        return function () {
+          return ViewModel.getValue(component, bindValue);
+        };
+      } else {
+        return function (value) {
+          ViewModel.setValueFull(value, component, bindValue, component);
+        };
+      }
     }
   }, {
     key: 'setValueFull',
@@ -1033,6 +1062,171 @@ var ViewModel = function () {
       ViewModel.prepareShouldComponentUpdate(component);
       ViewModel.prepareValidations(component);
     }
+  }, {
+    key: 'addBinding',
+    value: function addBinding(binding) {
+      if (!binding.priority) binding.priority = 1;
+      if (binding.selector) binding.priority += 1;
+      if (binding.bindIf) binding.priority += 1;
+      if (!ViewModel.bindings[binding.name]) {
+        ViewModel.bindings[binding.name] = [];
+      }
+      ViewModel.bindings[binding.name].push(binding);
+    }
+  }, {
+    key: 'bindElement',
+    value: function bindElement(component, bindingText) {
+      return function (element) {
+        if (!element || element.vmBound) return;
+        element.vmBound = true;
+
+        var bindId = ViewModel.nextId();
+        var bindObject = ViewModel.parseBind(bindingText);
+        for (var bindName in bindObject) {
+          if (ViewModel.compiledBindings[bindName]) continue;
+          var bindValue = bindObject[bindName];
+          if (~bindName.indexOf(' ')) {
+            var _iteratorNormalCompletion8 = true;
+            var _didIteratorError8 = false;
+            var _iteratorError8 = undefined;
+
+            try {
+              for (var _iterator8 = bindName.split(' ')[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                var bindNameSingle = _step8.value;
+
+                ViewModel.bindSingle(component, bindObject, element, bindNameSingle, bindId);
+              }
+            } catch (err) {
+              _didIteratorError8 = true;
+              _iteratorError8 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion8 && _iterator8.return) {
+                  _iterator8.return();
+                }
+              } finally {
+                if (_didIteratorError8) {
+                  throw _iteratorError8;
+                }
+              }
+            }
+          } else {
+            ViewModel.bindSingle(component, bindObject, element, bindName, bindId);
+          }
+        }
+      };
+    }
+  }, {
+    key: 'bindSingle',
+    value: function bindSingle(component, bindObject, element, bindName, bindId) {
+      var bindArg = ViewModel.getBindArgument(component, bindObject, element, bindName, bindId);
+      var binding = ViewModel.getBinding(bindName, bindArg);
+      if (!binding) return;
+
+      if (binding.bind) {
+        binding.bind(bindArg);
+      }
+      if (binding.autorun) {
+        bindArg.autorun(binding.autorun);
+      }
+
+      if (binding.events) {
+        var func = function func(eventName, eventFunc) {
+          var eventListener = function eventListener(event) {
+            eventFunc(bindArg, event);
+          };
+
+          bindArg.element.addEventListener(eventName, eventListener);
+          bindArg.component.vmDestroyed.push(function () {
+            bindArg.element.removeEventListener(eventName, eventListener);
+          });
+        };
+        for (var eventName in binding.events) {
+          var eventFunc = binding.events[eventName];
+          if (~eventName.indexOf(' ')) {
+            var _iteratorNormalCompletion9 = true;
+            var _didIteratorError9 = false;
+            var _iteratorError9 = undefined;
+
+            try {
+              for (var _iterator9 = eventName.split(' ')[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+                var event = _step9.value;
+
+                func(event, eventFunc);
+              }
+            } catch (err) {
+              _didIteratorError9 = true;
+              _iteratorError9 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion9 && _iterator9.return) {
+                  _iterator9.return();
+                }
+              } finally {
+                if (_didIteratorError9) {
+                  throw _iteratorError9;
+                }
+              }
+            }
+          } else {
+            func(eventName, eventFunc);
+          }
+        }
+      }
+    }
+  }, {
+    key: 'getBinding',
+    value: function getBinding(bindName, bindArg) {
+      var binding = null;
+      var bindingArray = ViewModel.bindings[bindName];
+      if (bindingArray) {
+        if (bindingArray.length === 1 && !(bindingArray[0].bindIf || bindingArray[0].selector)) {
+          binding = bindingArray[0];
+        } else {
+          binding = bindingArray.sort(function (a, b) {
+            b.priority - a.priority;
+          }).find(function (b) {
+            return !(b.bindIf && !b.bindIf(bindArg) || b.selector && !_helper2.default.elementMatch(bindArg.element, b.selector));
+          });
+        }
+      }
+      return binding || ViewModel.getBinding('default', bindArg);
+    }
+  }, {
+    key: 'getBindArgument',
+    value: function getBindArgument(component, bindObject, element, bindName, bindId) {
+      var getDelayedSetter = function getDelayedSetter(bindArg, setter) {
+        if (bindArg.elementBind.throttle) {
+          return function () {
+            for (var _len2 = arguments.length, args = Array(_len2), _key = 0; _key < _len2; _key++) {
+              args[_key] = arguments[_key];
+            }
+
+            ViewModel.delay(bindArg.getVmValue(bindArg.elementBind.throttle), bindId, function () {
+              setter.apply(undefined, args);
+            });
+          };
+        } else {
+          return setter;
+        }
+      };
+      var bindArg = {
+        autorun: function autorun(f) {
+          var fun = function fun(c) {
+            f(bindArg, c);
+          };
+          component.vmAutorun.push(ViewModel.Tracker.autorun(fun));
+        },
+        component: component,
+        element: element,
+        elementBind: bindObject,
+        bindName: bindName,
+        bindValue: bindObject[bindName],
+        getVmValue: ViewModel.getVmValueGetter(component, bindObject[bindName])
+      };
+      bindArg.setVmValue = getDelayedSetter(bindArg, ViewModel.getVmValueSetter(component, bindObject[bindName]));
+      return bindArg;
+    }
   }]);
 
   return ViewModel;
@@ -1105,10 +1299,17 @@ ViewModel.funPropReserved = {
   message: 1
 };
 
+ViewModel.compiledBindings = {
+  text: 1,
+  html: 1,
+  'class': 1
+};
+
 ViewModel.globals = [];
 ViewModel.components = {};
 ViewModel.mixins = {};
 ViewModel.shared = {};
+ViewModel.bindings = {};
 
 Object.defineProperties(ViewModel, {
   "property": { get: function get() {
@@ -1117,3 +1318,28 @@ Object.defineProperties(ViewModel, {
 });
 
 ViewModel.Property = _viewmodelProperty2.default;
+
+var _iteratorNormalCompletion10 = true;
+var _didIteratorError10 = false;
+var _iteratorError10 = undefined;
+
+try {
+  for (var _iterator10 = _bindings2.default[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+    var binding = _step10.value;
+
+    ViewModel.addBinding(binding);
+  }
+} catch (err) {
+  _didIteratorError10 = true;
+  _iteratorError10 = err;
+} finally {
+  try {
+    if (!_iteratorNormalCompletion10 && _iterator10.return) {
+      _iterator10.return();
+    }
+  } finally {
+    if (_didIteratorError10) {
+      throw _iteratorError10;
+    }
+  }
+}

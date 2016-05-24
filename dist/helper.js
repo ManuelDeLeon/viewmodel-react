@@ -186,6 +186,11 @@ var Helper = function () {
       }
       throw new Error("Unbalanced parenthesis");
     }
+  }, {
+    key: 'elementMatch',
+    value: function elementMatch(el, selector) {
+      return (el.matches || el.matchesSelector || el.msMatchesSelector || el.mozMatchesSelector || el.webkitMatchesSelector || el.oMatchesSelector).call(el, selector);
+    }
   }]);
 
   return Helper;
