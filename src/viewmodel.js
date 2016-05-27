@@ -1005,7 +1005,8 @@ ViewModel.funPropReserved = {
 ViewModel.compiledBindings = {
   text: 1,
   html: 1,
-  'class': 1
+  'class': 1,
+  'if': 1
 }
 
 ViewModel.globals = [];
