@@ -1032,12 +1032,8 @@ ViewModel.compiledBindings = {
   text: 1,
   html: 1,
   'class': 1,
-<<<<<<< 21a9c7774278cd71feb683d1e19bfb7cab1397d9
-  'if': 1
-=======
   'if': 1,
   'style': 1
->>>>>>> 6328067de0bc888347f73b9d0bdba5c979d96abf
 }
 
 ViewModel.globals = [];
