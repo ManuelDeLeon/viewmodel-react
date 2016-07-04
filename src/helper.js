@@ -147,6 +147,27 @@ export default class Helper {
   static elementMatch(el, selector) {
     return (el.matches || el.matchesSelector || el.msMatchesSelector || el.mozMatchesSelector || el.webkitMatchesSelector || el.oMatchesSelector).call(el, selector);
   };
+
+  static reactStyle(str) {
+    if(!~str.indexOf('-')) return str;
+    let retVal = "";
+    for(let block of str.split('-')) {
+      if (retVal) {
+        retVal += block[0].toUpperCase() + block.substr(1);
+      } else {
+        retVal += block;
+      }
+    }
+    return retVal;
+  }
+
+  static addStyles(obj, styles) {
+    if (styles) {
+      for (let style in styles) {
+        obj[Helper.reactStyle(style)] = styles[style];
+      }
+    }
+  }
 }
 
 Helper.nextId = 1;

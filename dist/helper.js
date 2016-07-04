@@ -168,7 +168,7 @@ var Helper = function () {
     key: 'getMatchingParenIndex',
     value: function getMatchingParenIndex(bindValue, parenIndexStart) {
       var currentChar, i, j, openParenCount, ref, ref1;
-      if (! ~parenIndexStart) {
+      if (!~parenIndexStart) {
         return -1;
       }
       openParenCount = 0;
@@ -190,6 +190,51 @@ var Helper = function () {
     key: 'elementMatch',
     value: function elementMatch(el, selector) {
       return (el.matches || el.matchesSelector || el.msMatchesSelector || el.mozMatchesSelector || el.webkitMatchesSelector || el.oMatchesSelector).call(el, selector);
+    }
+  }, {
+    key: 'reactStyle',
+    value: function reactStyle(str) {
+      if (!~str.indexOf('-')) return str;
+      var retVal = "";
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = str.split('-')[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var block = _step.value;
+
+          if (retVal) {
+            retVal += block[0].toUpperCase() + block.substr(1);
+          } else {
+            retVal += block;
+          }
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+
+      return retVal;
+    }
+  }, {
+    key: 'addStyles',
+    value: function addStyles(obj, styles) {
+      if (styles) {
+        for (var style in styles) {
+          obj[Helper.reactStyle(style)] = styles[style];
+        }
+      }
     }
   }]);
 

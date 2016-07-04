@@ -1,5 +1,9 @@
 import ReactDOM from 'react-dom';
 
+const changeBinding = function(eb) {
+  return eb.value || eb.check || eb.text || eb.html || eb.focus || eb.hover || eb.toggle || eb.if || eb.visible || eb.unless || eb.hide || eb.enable || eb.disable;
+};
+
 export default [
   {
     name: 'default',
@@ -125,6 +129,31 @@ export default [
       const vmValue = bindArg.getVmValue();
       const elementValue = bindArg.element.value;
       return bindArg.element.checked = (vmValue === elementValue);
+    }
+  },
+  {
+    name: 'enter',
+    events: {
+      'keyup': function(bindArg, event) {
+        if (event.which === 13 || event.keyCode === 13) {
+          bindArg.setVmValue(event);
+        }
+      }
+    }
+  },
+  {
+    name: 'change',
+    bind: function(bindArg) {
+      const bindValue = changeBinding(bindArg.elementBind);
+      bindArg.autorun(function(bindArg, c){
+        const newValue = bindArg.getVmValue(bindValue);
+        if (!c.firstRun) {
+          bindArg.setVmValue(newValue)
+        }
+      });
+    },
+    bindIf: function(bindArg) {
+      return changeBinding(bindArg.elementBind);
     }
   }
 ]

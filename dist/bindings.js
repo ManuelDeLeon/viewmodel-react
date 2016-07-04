@@ -10,6 +10,10 @@ var _reactDom2 = _interopRequireDefault(_reactDom);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+var changeBinding = function changeBinding(eb) {
+  return eb.value || eb.check || eb.text || eb.html || eb.focus || eb.hover || eb.toggle || eb.if || eb.visible || eb.unless || eb.hide || eb.enable || eb.disable;
+};
+
 exports.default = [{
   name: 'default',
   bind: function bind(bindArg) {
@@ -133,5 +137,28 @@ exports.default = [{
     var vmValue = bindArg.getVmValue();
     var elementValue = bindArg.element.value;
     return bindArg.element.checked = vmValue === elementValue;
+  }
+}, {
+  name: 'enter',
+  events: {
+    'keyup': function keyup(bindArg, event) {
+      if (event.which === 13 || event.keyCode === 13) {
+        bindArg.setVmValue(event);
+      }
+    }
+  }
+}, {
+  name: 'change',
+  bind: function bind(bindArg) {
+    var bindValue = changeBinding(bindArg.elementBind);
+    bindArg.autorun(function (bindArg, c) {
+      var newValue = bindArg.getVmValue(bindValue);
+      if (!c.firstRun) {
+        bindArg.setVmValue(newValue);
+      }
+    });
+  },
+  bindIf: function bindIf(bindArg) {
+    return changeBinding(bindArg.elementBind);
   }
 }];

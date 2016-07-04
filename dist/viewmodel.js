@@ -362,7 +362,7 @@ var ViewModel = function () {
           var array = ViewModel.getValue(container, prop);
           var elementValue = element.value;
           if (element.checked) {
-            if (! ~array.indexOf(elementValue)) {
+            if (!~array.indexOf(elementValue)) {
               array.push(elementValue);
             }
           } else {
@@ -377,7 +377,7 @@ var ViewModel = function () {
         container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
           var array = ViewModel.getValue(container, prop);
           if (!element) return;
-          var inArray = !! ~array.indexOf(element.value);
+          var inArray = !!~array.indexOf(element.value);
 
           if (element.checked != inArray) {
             element.checked = inArray;
@@ -413,7 +413,7 @@ var ViewModel = function () {
         }
         var parenIndexStart = bindValue.indexOf('(');
         var parenIndexEnd = _helper2.default.getMatchingParenIndex(bindValue, parenIndexStart);
-        var breakOnFirstDot = ~dotIndex && (! ~parenIndexStart || dotIndex < parenIndexStart || dotIndex === parenIndexEnd + 1);
+        var breakOnFirstDot = ~dotIndex && (!~parenIndexStart || dotIndex < parenIndexStart || dotIndex === parenIndexEnd + 1);
         if (breakOnFirstDot) {
           var newBindValue = bindValue.substring(dotIndex + 1);
           var newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
@@ -562,7 +562,7 @@ var ViewModel = function () {
         var array = ViewModel.getValue(viewmodel, bindValue);
         var elementValue = event.target.value;
         if (event.target.checked) {
-          if (! ~array.indexOf(elementValue)) {
+          if (!~array.indexOf(elementValue)) {
             array.push(elementValue);
           }
         } else {
@@ -575,7 +575,7 @@ var ViewModel = function () {
     value: function getClass(component, initialClass, bindText) {
       var cssClass = [initialClass];
       if (bindText.trim()[0] === '{') {
-        var cssObj = JSON.parse(bindText);
+        var cssObj = ViewModel.parseBind(bindText);
         for (var key in cssObj) {
           var value = cssObj[key];
           if (ViewModel.getValue(component, value)) {
@@ -586,6 +586,33 @@ var ViewModel = function () {
         cssClass.push(ViewModel.getValue(component, bindText));
       }
       return cssClass.join(' ');
+    }
+  }, {
+    key: 'getStyle',
+    value: function getStyle(component, initialStyle, bindText) {
+      var initialStyles = void 0;
+      if (!!initialStyle) {
+        initialStyles = ViewModel.parseBind(initialStyle.split(";").join(","));
+      }
+
+      var objectStyles = void 0;
+      if (bindText.trim()[0] === '{') {
+        objectStyles = {};
+        var preObjectStyles = ViewModel.parseBind(bindText);
+        for (var key in preObjectStyles) {
+          var value = preObjectStyles[key];
+          objectStyles[key] = ViewModel.getValue(component, value);
+        }
+      } else {
+        var vmValue = ViewModel.getValue(component, bindText);
+        var newValue = vmValue.split(";").join(",");
+        objectStyles = ViewModel.parseBind(newValue);
+      }
+
+      var styles = {};
+      _helper2.default.addStyles(styles, initialStyles);
+      _helper2.default.addStyles(styles, objectStyles);
+      return styles;
     }
   }, {
     key: 'parseBind',
@@ -1303,7 +1330,12 @@ ViewModel.compiledBindings = {
   text: 1,
   html: 1,
   'class': 1,
+<<<<<<< 21a9c7774278cd71feb683d1e19bfb7cab1397d9
   'if': 1
+=======
+  'if': 1,
+  'style': 1
+>>>>>>> 6328067de0bc888347f73b9d0bdba5c979d96abf
 };
 
 ViewModel.globals = [];

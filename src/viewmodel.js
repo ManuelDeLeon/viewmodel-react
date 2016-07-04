@@ -519,7 +519,7 @@ export default class ViewModel {
   static getClass(component, initialClass, bindText) {
     const cssClass = [initialClass];
     if (bindText.trim()[0] === '{') {
-      const cssObj = JSON.parse(bindText);
+      const cssObj = ViewModel.parseBind(bindText);
       for(let key in cssObj) {
         let value = cssObj[key];
         if (ViewModel.getValue(component, value)) {
@@ -530,6 +530,32 @@ export default class ViewModel {
       cssClass.push( ViewModel.getValue(component, bindText) );
     }
     return cssClass.join(' ');
+  };
+
+  static getStyle(component, initialStyle, bindText) {
+    let initialStyles; 
+    if (!!initialStyle) {
+      initialStyles = ViewModel.parseBind(initialStyle.split(";").join(","));
+    }
+
+    let objectStyles;
+    if (bindText.trim()[0] === '{') {
+      objectStyles = {};
+      const preObjectStyles = ViewModel.parseBind(bindText);
+      for (let key in preObjectStyles) {
+        let value = preObjectStyles[key];
+        objectStyles[key] = ViewModel.getValue(component, value);
+      }
+    } else {
+      const vmValue = ViewModel.getValue(component, bindText)
+      const newValue = vmValue.split(";").join(",");
+      objectStyles = ViewModel.parseBind(newValue);
+    }
+
+    const styles = {};
+    H.addStyles(styles, initialStyles);
+    H.addStyles(styles, objectStyles);
+    return styles;
   };
 
   static parseBind(str) {
@@ -1006,7 +1032,12 @@ ViewModel.compiledBindings = {
   text: 1,
   html: 1,
   'class': 1,
+<<<<<<< 21a9c7774278cd71feb683d1e19bfb7cab1397d9
   'if': 1
+=======
+  'if': 1,
+  'style': 1
+>>>>>>> 6328067de0bc888347f73b9d0bdba5c979d96abf
 }
 
 ViewModel.globals = [];
