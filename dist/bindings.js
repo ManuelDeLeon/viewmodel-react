@@ -161,4 +161,34 @@ exports.default = [{
   bindIf: function bindIf(bindArg) {
     return changeBinding(bindArg.elementBind);
   }
+}, {
+  name: 'hover',
+  events: {
+    mouseenter: function mouseenter(bindArg) {
+      bindArg.setVmValue(true);
+    },
+    mouseleave: function mouseleave(bindArg) {
+      bindArg.setVmValue(false);
+    }
+  }
+}, {
+  name: 'focus',
+  events: {
+    focus: function focus(bindArg) {
+      if (!bindArg.getVmValue()) bindArg.setVmValue(true);
+    },
+    blur: function blur(bindArg) {
+      if (bindArg.getVmValue()) bindArg.setVmValue(false);
+    }
+  },
+  autorun: function autorun(bindArg) {
+    var value = bindArg.getVmValue();
+    if (bindArg.element === document.activeElement !== value) {
+      if (value) {
+        bindArg.element.focus();
+      } else {
+        bindArg.element.blur();
+      }
+    }
+  }
 }];
