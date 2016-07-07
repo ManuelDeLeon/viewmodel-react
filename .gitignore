@@ -3,3 +3,4 @@ coverage
 /*.iml
 /.idea
 /.git
+dist

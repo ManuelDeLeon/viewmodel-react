@@ -539,7 +539,19 @@ export default class ViewModel {
     }
 
     let objectStyles;
-    if (bindText.trim()[0] === '{') {
+    if (bindText.trim()[0] === '[') {
+      objectStyles = {};
+      const itemsString = bindText.substr(1, bindText.length - 2);
+      const items = itemsString.split(',');
+      for(let item of items) {
+        const vmValue = ViewModel.getValue(component, item);
+        let bag = H.isString(vmValue) ? ViewModel.parseBind(vmValue) : vmValue;
+        for (let key in bag) {
+          const value = bag[key];
+          objectStyles[key] = value;
+        }
+      }
+    } else if (bindText.trim()[0] === '{') {
       objectStyles = {};
       const preObjectStyles = ViewModel.parseBind(bindText);
       for (let key in preObjectStyles) {
@@ -548,8 +560,13 @@ export default class ViewModel {
       }
     } else {
       const vmValue = ViewModel.getValue(component, bindText)
-      const newValue = vmValue.split(";").join(",");
-      objectStyles = ViewModel.parseBind(newValue);
+      if (H.isString(vmValue)) {
+        const newValue = vmValue.split(";").join(",");
+        objectStyles = ViewModel.parseBind(newValue);
+      } else {
+        objectStyles = vmValue;
+      }
+
     }
 
     const styles = {};

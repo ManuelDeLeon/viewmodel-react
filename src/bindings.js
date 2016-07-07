@@ -145,7 +145,7 @@ export default [
     name: 'change',
     bind: function(bindArg) {
       const bindValue = changeBinding(bindArg.elementBind);
-      bindArg.autorun(function(bindArg, c){
+      bindArg.autorun(function(bindArg, c) {
         const newValue = bindArg.getVmValue(bindValue);
         if (!c.firstRun) {
           bindArg.setVmValue(newValue)
@@ -154,6 +154,40 @@ export default [
     },
     bindIf: function(bindArg) {
       return changeBinding(bindArg.elementBind);
+    }
+  },
+  {
+    name: 'hover',
+    events: {
+      mouseenter: function(bindArg) {
+        bindArg.setVmValue(true);
+      },
+      mouseleave: function(bindArg) {
+        bindArg.setVmValue(false);
+      }
+    }
+  },
+  {
+    name: 'focus',
+    events: {
+      focus: function(bindArg) {
+        if (!bindArg.getVmValue())
+          bindArg.setVmValue(true);
+      },
+      blur: function(bindArg) {
+        if (bindArg.getVmValue())
+          bindArg.setVmValue(false);
+      }
+    },
+    autorun: function(bindArg) {
+      const value = bindArg.getVmValue();
+      if ((bindArg.element === document.activeElement) !== value) {
+        if (value) {
+          bindArg.element.focus();
+        } else {
+          bindArg.element.blur();
+        }
+      }
     }
   }
 ]
