@@ -189,5 +189,13 @@ export default [
         }
       }
     }
+  },
+  {
+    name: 'toggle',
+    events: {
+      click: function(bindArg) {
+        bindArg.setVmValue(!bindArg.getVmValue());
+      }
+    }
   }
 ]
