@@ -532,6 +532,11 @@ export default class ViewModel {
     return cssClass.join(' ');
   };
 
+  static getDisabled(component, isEnabled, bindText) {
+    const value = ViewModel.getValue(component, bindText);
+    return !!(isEnabled ? !value : value);
+  };
+
   static getStyle(component, initialStyle, bindText) {
     let initialStyles; 
     if (!!initialStyle) {
