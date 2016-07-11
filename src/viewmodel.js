@@ -650,7 +650,9 @@ export default class ViewModel {
             const fun = function(c) {
               autorun.call(component, c);
             }
-            component.vmComputations.push( ViewModel.Tracker.autorun(fun) );
+            component.vmRendered.push(function(){
+              component.vmComputations.push( ViewModel.Tracker.autorun(fun) );
+            })
           }
         )(autorun);
       }
@@ -1074,3 +1076,23 @@ ViewModel.Property = Property;
 for(let binding of presetBindings) {
   ViewModel.addBinding(binding);
 }
+
+const delayed = {};
+
+ViewModel.delay = function(time, nameOrFunc, fn) {
+  var d, func, id, name;
+  func = fn || nameOrFunc;
+  if (fn) {
+    name = nameOrFunc;
+  }
+  if (name) {
+    d = delayed[name];
+  }
+  if (d != null) {
+    clearTimeout(d);
+  }
+  id = setTimeout(func, time);
+  if (name) {
+    return delayed[name] = id;
+  }
+};
