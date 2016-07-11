@@ -25,7 +25,7 @@ export default [
         let newVal = bindArg.element.value;
         let vmVal = bindArg.getVmValue();
         vmVal = vmVal == null ? '' : vmVal.toString();
-        if (newVal !== vmVal) {
+        if (newVal !== vmVal || bindArg.elementBind.throttle) {
           bindArg.setVmValue(newVal);
         }
       }
@@ -33,7 +33,7 @@ export default [
     autorun: function(bindArg){
       let newVal = bindArg.getVmValue();
       newVal = newVal == null ? '' : newVal.toString();
-      if (newVal !== bindArg.element.value) {
+      if (newVal !== bindArg.element.value || bindArg.elementBind.throttle) {
         bindArg.element.value = newVal;
       }
     },
