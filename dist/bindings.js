@@ -33,7 +33,7 @@ exports.default = [{
       var newVal = bindArg.element.value;
       var vmVal = bindArg.getVmValue();
       vmVal = vmVal == null ? '' : vmVal.toString();
-      if (newVal !== vmVal) {
+      if (newVal !== vmVal || bindArg.elementBind.throttle) {
         bindArg.setVmValue(newVal);
       }
     }
@@ -41,7 +41,7 @@ exports.default = [{
   autorun: function autorun(bindArg) {
     var newVal = bindArg.getVmValue();
     newVal = newVal == null ? '' : newVal.toString();
-    if (newVal !== bindArg.element.value) {
+    if (newVal !== bindArg.element.value || bindArg.elementBind.throttle) {
       bindArg.element.value = newVal;
     }
   }
@@ -189,6 +189,13 @@ exports.default = [{
       } else {
         bindArg.element.blur();
       }
+    }
+  }
+}, {
+  name: 'toggle',
+  events: {
+    click: function click(bindArg) {
+      bindArg.setVmValue(!bindArg.getVmValue());
     }
   }
 }];
