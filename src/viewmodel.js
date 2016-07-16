@@ -637,8 +637,11 @@ export default class ViewModel {
   static prepareComponentWillMount(component){
     const old = component.componentWillMount;
     component.componentWillMount = function() {
-      this.parent = this.props.parent;
-      if (this.parent) this.parent.children().push(this);
+      if (this.props.parent && this.props.parent.children) this.props.parent.children().push(this);
+      this.parent = function() {
+        this.vmDependsOnParent = true;
+        return this.props.parent;
+      };
 
       for(let fun of component.vmCreated){
         fun.call(component)
@@ -695,7 +698,7 @@ export default class ViewModel {
   static prepareShouldComponentUpdate(component) {
     if (! component.shouldComponentUpdate) {
       component.shouldComponentUpdate = function() {
-        return !!component.vmChanged;
+        return !!(component.vmChanged || ( component.vmDependsOnParent && component.parent().vmChanged ));
       }
     }
   }

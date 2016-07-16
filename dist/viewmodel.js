@@ -725,8 +725,11 @@ var ViewModel = function () {
       component.componentWillMount = function () {
         var _this = this;
 
-        this.parent = this.props.parent;
-        if (this.parent) this.parent.children().push(this);
+        if (this.props.parent && this.props.parent.children) this.props.parent.children().push(this);
+        this.parent = function () {
+          this.vmDependsOnParent = true;
+          return this.props.parent;
+        };
 
         var _iteratorNormalCompletion2 = true;
         var _didIteratorError2 = false;
@@ -877,7 +880,7 @@ var ViewModel = function () {
     value: function prepareShouldComponentUpdate(component) {
       if (!component.shouldComponentUpdate) {
         component.shouldComponentUpdate = function () {
-          return !!component.vmChanged;
+          return !!(component.vmChanged || component.vmDependsOnParent && component.parent().vmChanged);
         };
       }
     }
