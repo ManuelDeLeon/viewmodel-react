@@ -172,43 +172,36 @@ export default class ViewModel {
     });
 
     const hasAsync = validator.hasAsync();
-    const validDependency = hasAsync && new Tracker.Dependency();
-    const validatingItems = hasAsync && new ReactiveArray([], new ViewModel.Tracker.Dependency());
-    let validationAsync = {};
+    let validationAsync = { count: 0 };
 
     const getDone = hasAsync ? function (initialValue) {
-      validatingItems.push(1);
+      validationAsync.count++;
       return function (result) {
-        validatingItems.pop();
-
-        if (_value === initialValue && validationAsync.value !== _value) {
-          validationAsync = {
-            value: _value,
-            result: result
-          };
-        }
-        component.vmChanged = true;
-        component.setState({});
+        validationAsync.count--;
+        validationAsync.value = initialValue
+        validationAsync.result = result;
+        dependency.changed();
       };
     } : void 0;
 
     funProp.valid = function (noAsync) {
-
       dependency.depend();
-      if (hasAsync) {
-        validDependency.depend();
-      }
-      if (validationAsync.value === _value) {
-        let retVal = validationAsync.result;
-        if (!validatingItems.length) {
-          //validationAsync = {};
+      const validSync = validator.verify(_value, component);
+      if (!validSync || noAsync || !hasAsync) {
+        if (!validSync) {
+          return false;
+        } else if (hasAsync && validationAsync.value === _value) {
+          return validationAsync.result;
+        } else {
+          return true;
         }
-        return retVal;
+        return validSync;
       } else {
-        if (hasAsync && !noAsync) {
+        if (validationAsync.value === _value) {
+          return validationAsync.result;
+        } else {
           validator.verifyAsync(_value, getDone(_value), component);
         }
-        return validator.verify(_value, component);
       }
     };
 
@@ -228,8 +221,8 @@ export default class ViewModel {
       if (!hasAsync) {
         return false;
       }
-      validatingItems.depend();
-      return !!validatingItems.length;
+      dependency.depend();
+      return !!validationAsync.count;
     };
 
     funProp.message = function () {
@@ -703,6 +696,14 @@ export default class ViewModel {
     }
   }
 
+  static prepareComponentWillReceiveProps(component) {
+    const old = component.componentWillReceiveProps;
+    component.componentWillReceiveProps = function(props) {
+      this.load(props);
+      if (old) old.call(component)
+    }
+  }
+
   static prepareMethodsAndProperties(component, initial) {
     for(let prop in initial) {
       if (ViewModel.reactKeyword[prop]) continue;
@@ -780,6 +781,17 @@ export default class ViewModel {
         }
       }
       return messages;
+    }
+  }
+
+  static prepareReset(component) {
+
+    component.reset = function () {
+      for (let prop in component) {
+        if (component[prop] && component[prop].vmPropId ) {
+          component[prop].reset();
+        }
+      }
     }
   }
 
@@ -873,7 +885,9 @@ export default class ViewModel {
     ViewModel.prepareComponentDidUpdate(component);
     ViewModel.prepareComponentWillUnmount(component);
     ViewModel.prepareShouldComponentUpdate(component);
+    ViewModel.prepareComponentWillReceiveProps(component);
     ViewModel.prepareValidations(component);
+    ViewModel.prepareReset(component);
   }
 
   static addBinding(binding) {
@@ -1060,7 +1074,9 @@ ViewModel.compiledBindings = {
   html: 1,
   'class': 1,
   'if': 1,
-  'style': 1
+  'style': 1,
+  repeat: 1,
+  key: 1
 }
 
 ViewModel.globals = [];
