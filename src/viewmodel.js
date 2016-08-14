@@ -250,103 +250,21 @@ export default class ViewModel {
     }
   }
 
-  static getCheckHook(container, prop, isCheck) {
-    var valueSetter = ViewModel.setValue(container, prop);
-    return function (element, force) {
-      if (!force && (!element || element.vmCheckHook)) return;
-      element.vmCheckHook = true;
-
-      const changeListener = function () {
-        if (isCheck || element.type === "checkbox") {
-          valueSetter(element.checked);
-        } else if (element.type === "radio" && element.checked) {
-          valueSetter(element.value);
-          if (element.name) {
-            const inputs = ReactDOM.findDOMNode(container).querySelectorAll(`input[type=radio][name=${element.name}]`);
-            const event = new Event('change');
-            Array.prototype.forEach.call(inputs, function (input, i) {
-              if (input !== element) {
-                input.dispatchEvent(event);
-              }
-            });
-          }
-        }
-      }
-
-      element.addEventListener('change', changeListener);
-      container.vmDestroyed.push(() => {
-        element.removeEventListener('change', changeListener)
-      });
-
-      container.vmAutorun.push(
-        ViewModel.Tracker.autorun(() => {
-
-          var value = ViewModel.getValue(container, prop);
-          var elementValue = element.type === "checkbox" ? element.checked : element.value;
-          if (element) {
-            if (value != element.checked) {
-              element.checked = (value === elementValue);
-            }
-          }
-        })
-      );
-    }
-  }
-
-  static getGroupHook(container, prop, hasCheck, checkProp) {
-    let checkHook = hasCheck && ViewModel.getCheckHook(container, checkProp, true);
-    return function(element) {
-      if (!element || element.vmGroupHook) return;
-      element.vmGroupHook = true;
-      if (checkHook){
-        checkHook(element);
-      }
-      if (element.type === "radio") {
-        ViewModel.getCheckHook(container, prop)(element, true);
-        return;
-      }
-
-      const changeListener = function() {
-        const array = ViewModel.getValue(container, prop);
-        const elementValue = element.value
-        if (element.checked) {
-          if (!~array.indexOf(elementValue)) {
-            array.push(elementValue);
-          }
-        } else {
-          array.remove(elementValue);
-        }
-      }
-      element.addEventListener('change', changeListener);
-      container.vmDestroyed.push( () => {
-        element.removeEventListener('change', changeListener)
-      });
-
-      container.vmAutorun.push(
-        ViewModel.Tracker.autorun(function() {
-          let array = ViewModel.getValue(container, prop);
-          if (!element) return;
-          let inArray = !!~array.indexOf(element.value);
-
-          if(element.checked != inArray) {
-            element.checked = inArray;
-          }
-        })
-      )
-    }
-  }
-
-  static getValue(container, bindValue, viewmodel, funPropReserved) {
+  static getValue(container, repeatObject, repeatIndex, bindValue, viewmodel, funPropReserved) {
     let value;
     if (arguments.length < 3) viewmodel = container;
     bindValue = bindValue.trim();
     const ref = H.firstToken(bindValue), token = ref[0], tokenIndex = ref[1];
     if (~tokenIndex) {
-      const left = ViewModel.getValue(container, bindValue.substring(0, tokenIndex), viewmodel);
-      const right = ViewModel.getValue(container, bindValue.substring(tokenIndex + token.length), viewmodel);
+      const left = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
+      const right = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
       value = H.tokens[token.trim()](left, right);
     } else if (bindValue === "this") {
       value = viewmodel;
+    } else if (bindValue === "repeatObject") {
+      value = repeatObject;
+    } else if (bindValue === "repeatIndex") {
+      value = repeatIndex;
     } else if (H.isQuoted(bindValue)) {
       value = H.removeQuotes(bindValue);
     } else {
@@ -364,8 +282,8 @@ export default class ViewModel {
       if (breakOnFirstDot) {
         const newBindValue = bindValue.substring(dotIndex + 1);
         const newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
-        const newContainer = ViewModel.getValue( container, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
-        value = ViewModel.getValue( newContainer, newBindValue, viewmodel );
+        const newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
+        value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel );
       } else {
         let name = bindValue;
         const args = [];
@@ -387,9 +305,9 @@ export default class ViewModel {
                 if (neg) {
                   arg = arg.substring(1);
                 }
-                arg = ViewModel.getValue(viewmodel, arg, viewmodel);
+                arg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
                 if (viewmodel && arg in viewmodel) {
-                  newArg = ViewModel.getValue(viewmodel, arg, viewmodel);
+                  newArg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
                 } else {
                   newArg = arg;
                 }
@@ -425,37 +343,37 @@ export default class ViewModel {
     return value;
   };
   
-  static getVmValueGetter(component, bindValue) {
+  static getVmValueGetter(component, repeatObject, repeatIndex, bindValue) {
     return function(optBindValue = bindValue){
-      return ViewModel.getValue(component, optBindValue.toString(), component)
+      return ViewModel.getValue(component, repeatObject, repeatIndex, optBindValue.toString(), component)
     }
   }
   
-  static getVmValueSetter(component, bindValue) {
+  static getVmValueSetter(component, repeatObject, repeatIndex, bindValue) {
     if (!H.isString(bindValue)){
       return function() {}  
     }
     if (~bindValue.indexOf(')', bindValue.length - 1)){
       return function(){
-        return ViewModel.getValue(component, bindValue);
+        return ViewModel.getValue(component, repeatObject, repeatIndex, bindValue);
       }
     } else {
       return function(value) {
-        ViewModel.setValueFull(value, component, bindValue, component);
+        ViewModel.setValueFull(value, repeatObject, repeatIndex, component, bindValue, component);
       }
     }
   }
 
-  static setValueFull(value, container, bindValue, viewmodel) {
+  static setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel) {
     var i, newBindValue, newContainer;
     if (H.dotRegex.test(bindValue)) {
       i = bindValue.search(H.dotRegex);
       if (bindValue.charAt(i) !== '.') {
         i += 1;
       }
-      newContainer = ViewModel.getValue(container, bindValue.substring(0, i), viewmodel);
+      newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
       newBindValue = bindValue.substring(i + 1);
-      ViewModel.setValueFull(value, newContainer, newBindValue, viewmodel);
+      ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel);
     } else {
       if (H.isFunction(container[bindValue])) {
         container[bindValue](value);
@@ -465,72 +383,43 @@ export default class ViewModel {
     }
   };
 
-  static setValue(viewmodel, bindValue) {
+  static setValue(viewmodel, repeatObject, repeatIndex, bindValue) {
     if (!H.isString(bindValue)) {
       return (function() {});
     }
     if (~bindValue.indexOf(')', bindValue.length - 1)) {
       return function() {
-        return ViewModel.getValue(viewmodel, bindValue, viewmodel);
+        return ViewModel.getValue(viewmodel, repeatObject, repeatIndex, bindValue, viewmodel);
       };
     } else {
       return function(value) {
-        return ViewModel.setValueFull(value, viewmodel, bindValue, viewmodel);
+        return ViewModel.setValueFull(value, repeatObject, repeatIndex, viewmodel, bindValue, viewmodel);
       };
     }
   };
 
-  static setInputValue(viewmodel, bindValue) {
-    var valueSetter = ViewModel.setValue(viewmodel, bindValue);
-    return function(event) {
-      valueSetter(event.target.value);
-    }
-  };
-
-  static setInputCheck(viewmodel, bindValue) {
-    var valueSetter = ViewModel.setValue(viewmodel, bindValue);
-    return function(event) {
-      valueSetter(event.target.checked);
-    }
-  };
-
-  static setInputGroup(viewmodel, bindValue) {
-
-    return function(event) {
-      const array = ViewModel.getValue(viewmodel, bindValue);
-      const elementValue = event.target.value
-      if (event.target.checked) {
-        if (!~array.indexOf(elementValue)) {
-          array.push(elementValue);
-        }
-      } else {
-        array.remove(elementValue);
-      }
-    }
-  };
-
-  static getClass(component, initialClass, bindText) {
+  static getClass(component, repeatObject, repeatIndex, initialClass, bindText) {
     const cssClass = [initialClass];
     if (bindText.trim()[0] === '{') {
       const cssObj = ViewModel.parseBind(bindText);
       for(let key in cssObj) {
         let value = cssObj[key];
-        if (ViewModel.getValue(component, value)) {
+        if (ViewModel.getValue(component, repeatObject, repeatIndex, value)) {
           cssClass.push( key );
         }
       }
     } else {
-      cssClass.push( ViewModel.getValue(component, bindText) );
+      cssClass.push( ViewModel.getValue(component, repeatObject, repeatIndex, bindText) );
     }
     return cssClass.join(' ');
   };
 
-  static getDisabled(component, isEnabled, bindText) {
-    const value = ViewModel.getValue(component, bindText);
+  static getDisabled(component, repeatObject, repeatIndex, isEnabled, bindText) {
+    const value = ViewModel.getValue(component, repeatObject, repeatIndex, bindText);
     return !!(isEnabled ? !value : value);
   };
 
-  static getStyle(component, initialStyle, bindText) {
+  static getStyle(component, repeatObject, repeatIndex, initialStyle, bindText) {
     let initialStyles; 
     if (!!initialStyle) {
       initialStyles = ViewModel.parseBind(initialStyle.split(";").join(","));
@@ -542,7 +431,7 @@ export default class ViewModel {
       const itemsString = bindText.substr(1, bindText.length - 2);
       const items = itemsString.split(',');
       for(let item of items) {
-        const vmValue = ViewModel.getValue(component, item);
+        const vmValue = ViewModel.getValue(component, repeatObject, repeatIndex, item);
         let bag = H.isString(vmValue) ? ViewModel.parseBind(vmValue) : vmValue;
         for (let key in bag) {
           const value = bag[key];
@@ -554,10 +443,10 @@ export default class ViewModel {
       const preObjectStyles = ViewModel.parseBind(bindText);
       for (let key in preObjectStyles) {
         let value = preObjectStyles[key];
-        objectStyles[key] = ViewModel.getValue(component, value);
+        objectStyles[key] = ViewModel.getValue(component, repeatObject, repeatIndex, value);
       }
     } else {
-      const vmValue = ViewModel.getValue(component, bindText)
+      const vmValue = ViewModel.getValue(component, repeatObject, repeatIndex, bindText)
       if (H.isString(vmValue)) {
         const newValue = vmValue.split(";").join(",");
         objectStyles = ViewModel.parseBind(newValue);
@@ -900,7 +789,7 @@ export default class ViewModel {
     ViewModel.bindings[binding.name].push(binding);
   }
   
-  static bindElement(component, bindingText) {
+  static bindElement(component, repeatObject, repeatIndex, bindingText) {
     return function(element) {
       if (!element || element.vmBound) return;
       element.vmBound = true;
@@ -912,17 +801,17 @@ export default class ViewModel {
         let bindValue = bindObject[bindName];
         if (~bindName.indexOf(' ')) {
           for (let bindNameSingle of bindName.split(' ')) {
-            ViewModel.bindSingle(component, bindObject, element, bindNameSingle, bindId);
+            ViewModel.bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindNameSingle, bindId);
           }
         } else {
-          ViewModel.bindSingle(component, bindObject, element, bindName, bindId);
+          ViewModel.bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId);
         }
       }
     }
   }
 
-  static bindSingle(component, bindObject, element, bindName, bindId){
-    const bindArg = ViewModel.getBindArgument(component, bindObject, element, bindName, bindId);
+  static bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId){
+    const bindArg = ViewModel.getBindArgument(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId);
     const binding = ViewModel.getBinding(bindName, bindArg);
     if (!binding) return;
 
@@ -976,7 +865,7 @@ export default class ViewModel {
     return binding || ViewModel.getBinding('default', bindArg);
   }
 
-  static getBindArgument(component, bindObject, element, bindName, bindId){
+  static getBindArgument(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId){
     const getDelayedSetter = function(bindArg, setter) {
       if (bindArg.elementBind.throttle) {
         return function(...args) {
@@ -996,9 +885,9 @@ export default class ViewModel {
       elementBind: bindObject,
       bindName: bindName,
       bindValue: bindObject[bindName],
-      getVmValue: ViewModel.getVmValueGetter(component, bindObject[bindName])
+      getVmValue: ViewModel.getVmValueGetter(component, repeatObject, repeatIndex, bindObject[bindName])
     }
-    bindArg.setVmValue = getDelayedSetter( bindArg, ViewModel.getVmValueSetter(component, bindObject[bindName]) );
+    bindArg.setVmValue = getDelayedSetter( bindArg, ViewModel.getVmValueSetter(component, repeatObject, repeatIndex, bindObject[bindName]) );
     return bindArg;
   }
 
