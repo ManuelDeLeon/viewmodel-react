@@ -88,7 +88,10 @@ export default class ViewModel {
         let c = components[key];
         if (!c.vmChanged) {
           c.vmChanged = true
-          c.setState({});
+          if (c.vmMounted) {
+            c.setState({});
+          }
+
         }
       }
       oldChanged();
@@ -509,7 +512,9 @@ export default class ViewModel {
           // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
           // important though.
           if (component[name]) component[name].stop();
-          component.setState({});
+          if (component.vmMounted) {
+            component.setState({});
+          }
         }
       });
     });
@@ -550,6 +555,7 @@ export default class ViewModel {
   static prepareComponentDidMount(component){
     const old = component.componentDidMount;
     component.componentDidMount = function() {
+      component.vmMounted = true;
       for(let fun of component.vmRendered){
         fun.call(component)
       }
@@ -560,12 +566,14 @@ export default class ViewModel {
   static prepareComponentWillUnmount(component){
     const old = component.componentWillUnmount;
     component.componentWillUnmount = function() {
+
       for(let fun of component.vmDestroyed){
         fun.call(component)
       }
       this.vmComputations.forEach(c => c.stop());
       this.vmRenderComputation.stop();
       if (old) old.call(component)
+      component.vmMounted = false;
     }
   }
 
@@ -609,7 +617,10 @@ export default class ViewModel {
     const oldChanged = dependency.changed.bind(dependency);
     dependency.changed = function() {
       component.vmChanged = true;
-      component.setState({});
+      if (component.vmMounted) {
+        component.setState({});
+      }
+
       oldChanged();
     }
     const array = new ReactiveArray([], dependency);
@@ -777,6 +788,8 @@ export default class ViewModel {
     ViewModel.prepareComponentWillReceiveProps(component);
     ViewModel.prepareValidations(component);
     ViewModel.prepareReset(component);
+
+
   }
 
   static addBinding(binding) {
@@ -796,6 +809,7 @@ export default class ViewModel {
 
       const bindId = ViewModel.nextId();
       const bindObject = ViewModel.parseBind(bindingText);
+      element.vmBinding = bindObject;
       for (let bindName in bindObject) {
         if (ViewModel.compiledBindings[bindName]) continue;
         let bindValue = bindObject[bindName];
@@ -923,6 +937,8 @@ ViewModel.reserved = {
   vmEvents: 1,
   vmInitial: 1,
   vmPropId: 1,
+  vmMounted: 1,
+  vmElementBind: 1,
   templateInstance: 1,
   parent: 1,
   children: 1,
