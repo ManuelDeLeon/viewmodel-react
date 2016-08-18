@@ -8,6 +8,10 @@ export default [
   {
     name: 'default',
     bind: function(bindArg) {
+      if (bindArg.bindName in bindArg.element && !(bindArg.element[bindArg.bindName] instanceof Function)) {
+        // It's an attribute so don't add it as an event
+        return;
+      }
       const eventListener = function (event) {
         bindArg.setVmValue(event);
       }
