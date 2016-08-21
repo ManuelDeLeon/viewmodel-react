@@ -241,7 +241,7 @@ export default class ViewModel {
 
   static getValueRef(container, prop) {
     return function (element) {
-      container.vmAutorun.push(
+      container.vmComputations.push(
         ViewModel.Tracker.autorun(function () {
           let value = container[prop]();
           value = value == null ? "" : value;
@@ -534,18 +534,7 @@ export default class ViewModel {
         fun.call(component)
       }
       this.load(this.props);
-      for(let autorun of component.vmAutorun) {
-        (
-          function(autorun){
-            const fun = function(c) {
-              autorun.call(component, c);
-            }
-            component.vmRendered.push(function(){
-              component.vmComputations.push( ViewModel.Tracker.autorun(fun) );
-            })
-          }
-        )(autorun);
-      }
+
       let oldRender = this.render;
       this.render = () => ViewModel.autorunOnce(oldRender, this);
       if (old) old.call(component)
@@ -558,6 +547,12 @@ export default class ViewModel {
       component.vmMounted = true;
       for(let fun of component.vmRendered){
         fun.call(component)
+      }
+      for(let autorun of component.vmAutorun) {
+
+        component.vmComputations.push( ViewModel.Tracker.autorun(function(c) {
+              autorun.call(component, c);
+            }) );
       }
       if (old) old.call(component)
     }
@@ -751,7 +746,7 @@ export default class ViewModel {
         if (!toLoad[hook]) continue;
         let vmProp = hooks[hook];
         if (toLoad[hook] instanceof Array) {
-          for(let item in toLoad[hook]) {
+          for(let item of toLoad[hook]) {
             component[vmProp].push(item)
           }
         } else {
@@ -892,7 +887,7 @@ export default class ViewModel {
     const bindArg = {
       autorun: function(f){
         let fun = function(c) { f(bindArg, c) };
-        component.vmAutorun.push( ViewModel.Tracker.autorun(fun) );
+        component.vmComputations.push( ViewModel.Tracker.autorun(fun) );
       },
       component: component,
       element: element,
