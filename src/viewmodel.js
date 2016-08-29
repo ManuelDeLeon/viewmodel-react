@@ -5,6 +5,9 @@ import Property from './viewmodel-property';
 import parseBind from './parseBind';
 import ReactDOM from 'react-dom';
 import presetBindings from './bindings'
+import { getSaveUrl, getLoadUrl } from './viewmodel-onUrl';
+
+let savedOnUrl = [];
 
 export default class ViewModel {
   static nextId() {
@@ -513,6 +516,7 @@ export default class ViewModel {
           // important though.
           if (component[name]) component[name].stop();
           if (component.vmMounted) {
+            component.vmChanged = true;
             component.setState({});
           }
         }
@@ -529,11 +533,11 @@ export default class ViewModel {
         this.vmDependsOnParent = true;
         return this.props.parent;
       };
+      this.load(this.props);
 
       for(let fun of component.vmCreated){
         fun.call(component)
       }
-      this.load(this.props);
 
       let oldRender = this.render;
       this.render = () => ViewModel.autorunOnce(oldRender, this);
@@ -549,12 +553,36 @@ export default class ViewModel {
         fun.call(component)
       }
       for(let autorun of component.vmAutorun) {
-
         component.vmComputations.push( ViewModel.Tracker.autorun(function(c) {
-              autorun.call(component, c);
-            }) );
+          autorun.call(component, c);
+        }));
       }
-      if (old) old.call(component)
+
+      if (old) old.call(component);
+
+      component.vmPathToRoot = ViewModel.getPathToRoot(component);
+      component.vmPathToParent = ViewModel.getPathToParent(component);
+
+      if (component.onUrl) {
+        const saveOnUrl = function(component) {
+          return function() {
+            ViewModel.loadUrl(component);
+            ViewModel.saveUrl(component);
+          }
+
+        };
+        const toSave = saveOnUrl(component);
+        if(savedOnUrl) {
+          savedOnUrl.push(toSave);
+        } else {
+          toSave();
+        }
+      }
+
+      if (!component.parent()) {
+        savedOnUrl.forEach(function(fun) { fun(); });
+        savedOnUrl = null;
+      }
     }
   }
 
@@ -629,6 +657,25 @@ export default class ViewModel {
       }
     }
     component.children = funProp;
+  }
+
+  static prepareData(component) {
+
+    component.data = function (fields = []) {
+      const js ={};
+      for (let prop in component) {
+        if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+          component[prop].depend();
+          let value = component[prop].value;
+          if (value instanceof Array) {
+            js[prop] = value.array();
+          } else {
+            js[prop] = value;
+          }
+        }
+      }
+      return js;
+    }
   }
 
   static prepareValidations(component) {
@@ -782,6 +829,7 @@ export default class ViewModel {
     ViewModel.prepareShouldComponentUpdate(component);
     ViewModel.prepareComponentWillReceiveProps(component);
     ViewModel.prepareValidations(component);
+    ViewModel.prepareData(component);
     ViewModel.prepareReset(component);
 
 
@@ -856,6 +904,63 @@ export default class ViewModel {
     }
 
   }
+
+  static getComponentPath(component) {
+    let path = component.vmComponentName;
+    const parent = component.parent();
+    if (parent) {
+      path = parent.vmComponentName + component.vmPathToParent + '/' + path ;
+    } else {
+      path = component.vmPathToParent + '/' + path ;
+    }
+
+    return path;
+  }
+
+  static getPathToRoot(component) {
+    var difference, i, parentPath, viewmodelPath;
+    return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
+  };
+
+  static getPathToParent(component) {
+    var difference, i, parentPath, viewmodelPath;
+
+    if (!component.parent()) {
+      return '/';
+    }
+    viewmodelPath = component.vmPathToRoot;
+    if (!component.parent().vmPathToRoot) {
+      component.parent().vmPathToRoot = ViewModel.getPathToRoot(component.parent());
+    }
+    parentPath = component.parent().vmPathToRoot;
+
+    i = 0;
+    while (parentPath[i] === viewmodelPath[i] && (parentPath[i] != null)) {
+      i++;
+    }
+    difference = viewmodelPath.substr(i);
+    return difference;
+  };
+
+  static getElementPath(element) {
+    var i, ix, sibling, siblings;
+    if (!element || !element.parentNode || element.tagName === 'HTML' || element === document.body) {
+      return '/';
+    }
+    ix = 0;
+    siblings = element.parentNode.childNodes;
+    i = 0;
+    while (i < siblings.length) {
+      sibling = siblings[i];
+      if (sibling === element) {
+        return ViewModel.getElementPath(element.parentNode) + '/' + element.tagName + '[' + (ix + 1) + ']';
+      }
+      if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
+        ix++;
+      }
+      i++;
+    }
+  };
   
   static getBinding(bindName, bindArg) {
     let binding = null;
@@ -990,7 +1095,8 @@ Object.defineProperties(ViewModel, {
 });
 
 ViewModel.Property = Property;
-
+ViewModel.saveUrl = getSaveUrl(ViewModel);
+ViewModel.loadUrl = getLoadUrl(ViewModel);
 
 for(let binding of presetBindings) {
   ViewModel.addBinding(binding);
