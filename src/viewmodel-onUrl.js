@@ -101,7 +101,7 @@ getSavedData = function(url) {
   if (url == null) {
     url = document.URL;
   }
-  urlData = getUrl(url).queryKey.data;
+  urlData = getUrl(url).queryKey.vmdata;
   if (!urlData) {
     return;
   }
@@ -128,7 +128,7 @@ var getSaveUrl = function(vmObject){
         savedData[vmHash] = data;
         dataString = JSON.stringify(savedData);
         dataCompressed = LZString.compressToEncodedURIComponent(dataString);
-        url = updateQueryString("data", dataCompressed, url);
+        url = updateQueryString("vmdata", dataCompressed, url);
         if (!c.firstRun && document.URL !== url) {
           window.history.pushState(null, null, url);
         }

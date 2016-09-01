@@ -528,7 +528,9 @@ export default class ViewModel {
   static prepareComponentWillMount(component){
     const old = component.componentWillMount;
     component.componentWillMount = function() {
-      if (this.props.parent && this.props.parent.children) this.props.parent.children().push(this);
+      if (this.props.parent && this.props.parent.children) {
+        this.props.parent.children().push(this);
+      }
       this.parent = function() {
         this.vmDependsOnParent = true;
         return this.props.parent;
@@ -611,7 +613,23 @@ export default class ViewModel {
   static prepareShouldComponentUpdate(component) {
     if (! component.shouldComponentUpdate) {
       component.shouldComponentUpdate = function() {
-        return !!(component.vmChanged || ( component.vmDependsOnParent && component.parent().vmChanged ));
+        if (component.vmChanged || ( component.vmDependsOnParent && component.parent().vmChanged )) {
+          if(component.parent()) {
+            for(let ref in component.parent().refs) {
+              if (component.parent().refs[ref] === component ){
+                if (!component.parent().vmChanged) {
+                  component.parent().vmChanged = true;
+                  component.parent().setState({});
+                }
+
+              }
+            }
+          }
+          return true;
+        }
+
+
+        return false;
       }
     }
   }
@@ -852,7 +870,6 @@ export default class ViewModel {
 
       const bindId = ViewModel.nextId();
       const bindObject = ViewModel.parseBind(bindingText);
-      element.vmBinding = bindObject;
       for (let bindName in bindObject) {
         if (ViewModel.compiledBindings[bindName]) continue;
         let bindValue = bindObject[bindName];
