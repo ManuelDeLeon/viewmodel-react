@@ -66,6 +66,12 @@ export default class ViewModel {
     }
   }
 
+  static signal(obj) {
+    for (let key in obj) {
+      ViewModel.signals[key] = obj[key];
+    }
+  }
+
   static share(obj) {
     for (let key in obj) {
       ViewModel.shared[key] = {}
@@ -89,13 +95,7 @@ export default class ViewModel {
     dependency.changed = function () {
       for (let key in components) {
         let c = components[key];
-        if (!c.vmChanged) {
-          c.vmChanged = true
-          if (c.vmMounted) {
-            c.setState({});
-          }
-
-        }
+        c.vmChange();
       }
       oldChanged();
     }
@@ -258,7 +258,7 @@ export default class ViewModel {
 
   static getValue(container, repeatObject, repeatIndex, bindValue, viewmodel, funPropReserved) {
     let value;
-    if (arguments.length < 3) viewmodel = container;
+    if (arguments.length < 5) viewmodel = container;
     bindValue = bindValue.trim();
     const ref = H.firstToken(bindValue), token = ref[0], tokenIndex = ref[1];
     if (~tokenIndex) {
@@ -291,54 +291,60 @@ export default class ViewModel {
         const newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
         value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel );
       } else {
-        let name = bindValue;
-        const args = [];
-        if (~parenIndexStart) {
-          const parsed = ViewModel.parseBind(bindValue);
-          name = Object.keys(parsed)[0];
-          const second = parsed[name];
-          if (second.length > 2) {
-            const ref1 = second.substr(1, second.length - 2).split(',');
-            for (let j = 0, len = ref1.length; j < len; j++) {
-              let arg = ref1[j].trim();
-              let newArg;
-              if (arg === "this") {
-                newArg = viewmodel;
-              } else if (H.isQuoted(arg)) {
-                newArg = H.removeQuotes(arg);
-              } else {
-                const neg = arg.charAt(0) === '!';
-                if (neg) {
-                  arg = arg.substring(1);
-                }
-                arg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
-                if (viewmodel && arg in viewmodel) {
-                  newArg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
+        if (container == null) {
+          value = undefined;
+        } else {
+          let name = bindValue;
+          const args = [];
+          if (~parenIndexStart) {
+            const parsed = ViewModel.parseBind(bindValue);
+            name = Object.keys(parsed)[0];
+            const second = parsed[name];
+            if (second.length > 2) {
+              const ref1 = second.substr(1, second.length - 2).split(',');
+              for (let j = 0, len = ref1.length; j < len; j++) {
+                let arg = ref1[j].trim();
+                let newArg;
+                if (arg === "this") {
+                  newArg = viewmodel;
+                } else if (H.isQuoted(arg)) {
+                  newArg = H.removeQuotes(arg);
                 } else {
-                  newArg = arg;
+                  const neg = arg.charAt(0) === '!';
+                  if (neg) {
+                    arg = arg.substring(1);
+                  }
+                  arg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
+                  if (viewmodel && arg in viewmodel) {
+                    newArg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
+                  } else {
+                    newArg = arg;
+                  }
+                  if (neg) {
+                    newArg = !newArg;
+                  }
                 }
-                if (neg) {
-                  newArg = !newArg;
-                }
+                args.push(newArg);
               }
-              args.push(newArg);
             }
           }
-        }
-        const primitive = H.isPrimitive(name);
-        if (container.vmId && !primitive && !container[name]) {
-          container[name] = ViewModel.prop('', viewmodel);
-        }
-        if (!primitive && !((container != null) && ((container[name] != null) || H.isObject(container)))) {
-          const errorMsg = "Can't access '" + name + "' of '" + container + "'.";
-          console.error(errorMsg);
-        } else if (primitive || !name in container) {
-          value = H.getPrimitive(name);
-        } else {
-          if (!funPropReserved && H.isFunction(container[name])) {
-            value = container[name].apply(container, args);
+          const primitive = H.isPrimitive(name);
+          if (container.vmId && !primitive && !container[name]) {
+            container[name] = ViewModel.prop('', viewmodel);
+          }
+          if (!primitive && !((container != null) && ((container[name] != null) || H.isObject(container)))) {
+            const errorMsg = "Can't access '" + name + "' of '" + container + "'.";
+            console.error(errorMsg);
+          } else if (primitive) {
+            value = H.getPrimitive(name);
+          } else if (!(name in container)){
+            return undefined;
           } else {
-            value = container[name];
+            if (!funPropReserved && H.isFunction(container[name])) {
+              value = container[name].apply(container, args);
+            } else {
+              value = container[name];
+            }
           }
         }
       }
@@ -515,10 +521,7 @@ export default class ViewModel {
           // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
           // important though.
           if (component[name]) component[name].stop();
-          if (component.vmMounted) {
-            component.vmChanged = true;
-            component.setState({});
-          }
+          component.vmChange();
         }
       });
     });
@@ -585,6 +588,8 @@ export default class ViewModel {
         savedOnUrl.forEach(function(fun) { fun(); });
         savedOnUrl = null;
       }
+
+      component.vmChanged = false;
     }
   }
 
@@ -613,17 +618,23 @@ export default class ViewModel {
   static prepareShouldComponentUpdate(component) {
     if (! component.shouldComponentUpdate) {
       component.shouldComponentUpdate = function() {
-        if (component.vmChanged || ( component.vmDependsOnParent && component.parent().vmChanged )) {
-          if(component.parent()) {
-            for(let ref in component.parent().refs) {
-              if (component.parent().refs[ref] === component ){
-                if (!component.parent().vmChanged) {
-                  component.parent().vmChanged = true;
-                  component.parent().setState({});
-                }
+        const parent = component.parent();
+        if (component.vmChanged || ( component.vmDependsOnParent && parent.vmChanged )) {
 
+          if(parent && !parent.vmChanged && !component.hasOwnProperty('vmUpdateParent')) {
+            for(let ref in parent.refs) {
+              if (parent.refs[ref] === component ){
+                component.vmUpdateParent = true;
+                break;
               }
             }
+            if (!component.vmUpdateParent) {
+              // Create the property in the component
+              component.vmUpdateParent = false;
+            }
+          }
+          if (component.vmUpdateParent) {
+            parent.vmChange();
           }
           return true;
         }
@@ -657,11 +668,7 @@ export default class ViewModel {
     const dependency = new ViewModel.Tracker.Dependency();
     const oldChanged = dependency.changed.bind(dependency);
     dependency.changed = function() {
-      component.vmChanged = true;
-      if (component.vmMounted) {
-        component.setState({});
-      }
-
+      component.vmChange();
       oldChanged();
     }
     const array = new ReactiveArray([], dependency);
@@ -787,6 +794,13 @@ export default class ViewModel {
     component.load = function(toLoad) {
       if (! toLoad) return;
 
+      // Signals
+      for (let signal of ViewModel.signalsToLoad(toLoad.signal, component)) {
+        component.load( signal );
+        component.vmCreated.push( signal.onCreated );
+        component.vmDestroyed.push( signal.onDestroyed );
+      }
+
       // Shared
       ViewModel.loadMixinShare( toLoad.share, ViewModel.shared, component );
 
@@ -829,7 +843,14 @@ export default class ViewModel {
     component.vmRendered = [];
     component.vmDestroyed = [];
     component.vmAutorun = [];
-
+    component.vmChange = function() {
+      if (!component.vmChanged) {
+        component.vmChanged = true;
+        if (component.vmMounted) {
+          component.setState({});
+        }
+      }
+    }
     ViewModel.add(component);
     
     ViewModel.prepareLoad(component);
@@ -1022,6 +1043,82 @@ export default class ViewModel {
     return bindArg;
   }
 
+  static throttle(func, wait, options) {
+    var context, args, result;
+    var timeout = null;
+    var previous = 0;
+    if (!options) options = {};
+    var later = function() {
+      previous = options.leading === false ? 0 : _.now();
+      timeout = null;
+      result = func.apply(context, args);
+      if (!timeout) context = args = null;
+    };
+    return function() {
+      var now = _.now();
+      if (!previous && options.leading === false) previous = now;
+      var remaining = wait - (now - previous);
+      context = this;
+      args = arguments;
+      if (remaining <= 0 || remaining > wait) {
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+        previous = now;
+        result = func.apply(context, args);
+        if (!timeout) context = args = null;
+      } else if (!timeout && options.trailing !== false) {
+        timeout = setTimeout(later, remaining);
+      }
+      return result;
+    };
+  }
+  static signalContainer(containerName, container) {
+    const all = [];
+    if (containerName) {
+      const signalObject = ViewModel.signals[containerName];
+      for(let key in signalObject) {
+        let value = signalObject[key];
+        (
+          function(key, value) {
+            const single = {};
+            single[key] = {};
+            const transform = value.transform || function(e){ return e; };
+            const boundProp = `_${key}_Bound`;
+            single.onCreated = function() {
+              const vmProp = container[key];
+              const func = function(e) {
+                vmProp(transform(e));
+              };
+              const funcToUse = value.throttle ? ViewModel.throttle(func, value.throttle) : func;
+              container[boundProp] = funcToUse;
+              value.target.addEventListener(value.event, this[boundProp]);
+            }
+            single.onDestroyed = function() {
+              value.target.removeEventListener( value.event, this[boundProp] );
+            }
+            all.push(single);
+          }
+        )(key, value);
+      }
+    }
+    return all;
+  }
+
+  static signalsToLoad(containerName, container) {
+    if (containerName instanceof Array) {
+      const signals = [];
+      for(let name of containerName) {
+        for(let signal of ViewModel.signalContainer(name, container)) {
+          signals.push(signal);
+        }
+      }
+      return signals;
+    } else {
+      return ViewModel.signalContainer(containerName, container);
+    }
+  }
 
 }
 
@@ -1105,6 +1202,7 @@ ViewModel.globals = [];
 ViewModel.components = {};
 ViewModel.mixins = {};
 ViewModel.shared = {};
+ViewModel.signals = {};
 ViewModel.bindings = {};
 
 Object.defineProperties(ViewModel, {
