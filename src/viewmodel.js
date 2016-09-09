@@ -762,18 +762,20 @@ export default class ViewModel {
     }
   }
 
-  static loadMixinShare(toLoad, collection, component) {
+  static loadMixinShare(toLoad, collection, component, bag) {
     if (! toLoad) return;
     if (toLoad instanceof Array) {
       for(let element of toLoad) {
         if (H.isString(element)) {
           component.load( collection[element] );
+          bag[element] = null;
         } else {
-          ViewModel.loadMixinShare( element, collection, component );
+          ViewModel.loadMixinShare( element, collection, component, bag );
         }
       }
     } else if (H.isString(toLoad)) {
       component.load( collection[toLoad] );
+      bag[toLoad] = null;
     } else {
       for (let ref in toLoad) {
         const container = {};
@@ -781,11 +783,14 @@ export default class ViewModel {
         if ( mixshare instanceof Array ) {
           for(let item of mixshare){
             ViewModel.load( collection[item], container, component );
+            bag[item] = ref;
           }
         } else {
           ViewModel.load( collection[mixshare], container, component );
+          bag[mixshare] = ref;
         }
         component[ref] = container;
+        
       }
     }
   }
@@ -802,10 +807,10 @@ export default class ViewModel {
       }
 
       // Shared
-      ViewModel.loadMixinShare( toLoad.share, ViewModel.shared, component );
+      ViewModel.loadMixinShare( toLoad.share, ViewModel.shared, component, component.vmShares );
 
       // Mixins
-      ViewModel.loadMixinShare( toLoad.mixin, ViewModel.mixins, component );
+      ViewModel.loadMixinShare( toLoad.mixin, ViewModel.mixins, component, component.vmMixins );
 
       // Whatever is in 'load' is loaded before direct properties
       component.load( toLoad.load )
@@ -843,6 +848,18 @@ export default class ViewModel {
     component.vmRendered = [];
     component.vmDestroyed = [];
     component.vmAutorun = [];
+    component.vmMixins = {};
+    component.vmShares = {};
+    component.vmSignals = {};
+    const getHasComposition = function(bag) {
+      return function(name, prop) {
+        return bag.hasOwnProperty(name) && (!bag[name] || bag[name] === prop );
+      };
+    };
+    component.hasMixin = getHasComposition(component.vmMixins);
+    component.hasShared = getHasComposition(component.vmShares);
+    component.hasSignal = getHasComposition(component.vmSignals);
+
     component.vmChange = function() {
       if (!component.vmChanged) {
         component.vmChanged = true;
@@ -1120,6 +1137,12 @@ export default class ViewModel {
     }
   }
 
+  static loadComponent(comp) {
+    const vm = {};
+    ViewModel.prepareComponent( 'TestComponent', vm, null);
+    vm.load(comp);
+    return vm;
+  }
 }
 
 ViewModel.Tracker = Tracker;
