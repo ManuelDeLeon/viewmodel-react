@@ -491,7 +491,7 @@ export default class ViewModel {
           } else if (container[key] && container[key].vmPropId && H.isFunction(container[key])) {
             container[key](value);
           } else {
-            container[key] = ViewModel.prop(value, container);
+            container[key] = ViewModel.prop(value, component);
           }
         }
       }
@@ -857,7 +857,7 @@ export default class ViewModel {
       };
     };
     component.hasMixin = getHasComposition(component.vmMixins);
-    component.hasShared = getHasComposition(component.vmShares);
+    component.hasShare = getHasComposition(component.vmShares);
     component.hasSignal = getHasComposition(component.vmSignals);
 
     component.vmChange = function() {
@@ -1141,6 +1141,7 @@ export default class ViewModel {
     const vm = {};
     ViewModel.prepareComponent( 'TestComponent', vm, null);
     vm.load(comp);
+    vm.reset();
     return vm;
   }
 }
