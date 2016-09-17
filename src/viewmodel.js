@@ -535,8 +535,13 @@ export default class ViewModel {
         this.props.parent.children().push(this);
       }
       this.parent = function() {
-        this.vmDependsOnParent = true;
-        return this.props.parent;
+        if (this.props.parent && this.props.parent.vmId) {
+          this.vmDependsOnParent = true;
+          return this.props.parent;
+        } else {
+          return undefined;
+        }
+
       };
       this.load(this.props);
 
@@ -584,7 +589,7 @@ export default class ViewModel {
         }
       }
 
-      if (!component.parent()) {
+      if (savedOnUrl && !component.parent()) {
         savedOnUrl.forEach(function(fun) { fun(); });
         savedOnUrl = null;
       }
@@ -979,13 +984,13 @@ export default class ViewModel {
 
   static getPathToParent(component) {
     var difference, i, parentPath, viewmodelPath;
-
-    if (!component.parent()) {
+    const parent = component.parent();
+    if (!parent) {
       return '/';
     }
     viewmodelPath = component.vmPathToRoot;
-    if (!component.parent().vmPathToRoot) {
-      component.parent().vmPathToRoot = ViewModel.getPathToRoot(component.parent());
+    if (!parent.vmPathToRoot) {
+      parent.vmPathToRoot = ViewModel.getPathToRoot(parent);
     }
     parentPath = component.parent().vmPathToRoot;
 
