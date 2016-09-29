@@ -531,13 +531,15 @@ export default class ViewModel {
   static prepareComponentWillMount(component){
     const old = component.componentWillMount;
     component.componentWillMount = function() {
-      if (this.props.parent && this.props.parent.children) {
-        this.props.parent.children().push(this);
+      let parent = this.props['data-vm-parent'];
+      if (parent && parent.children) {
+        parent.children().push(this);
       }
       this.parent = function() {
-        if (this.props.parent && this.props.parent.vmId) {
+        parent = this.props['data-vm-parent']
+        if (parent && parent.vmId) {
           this.vmDependsOnParent = true;
-          return this.props.parent;
+          return parent;
         } else {
           return undefined;
         }
