@@ -24,8 +24,29 @@ export default [
   },
   {
     name: 'value',
+    selector: 'select'
     events: {
-      'change input propertychange': function (bindArg) {
+      'change': function (bindArg) {
+        let newVal = bindArg.element.value;
+        let vmVal = bindArg.getVmValue();
+        vmVal = vmVal == null ? '' : vmVal.toString();
+        if (newVal !== vmVal || bindArg.elementBind.throttle) {
+          bindArg.setVmValue(newVal);
+        }
+      }
+    },
+    autorun: function(bindArg){
+      let newVal = bindArg.getVmValue();
+      newVal = newVal == null ? '' : newVal.toString();
+      if (newVal !== bindArg.element.value || bindArg.elementBind.throttle) {
+        bindArg.element.value = newVal;
+      }
+    },
+  },
+  {
+    name: 'value',
+    events: {
+      'input': function (bindArg) {
         let newVal = bindArg.element.value;
         let vmVal = bindArg.getVmValue();
         vmVal = vmVal == null ? '' : vmVal.toString();
