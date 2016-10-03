@@ -4,12 +4,15 @@ const changeBinding = function(eb) {
   return eb.value || eb.check || eb.text || eb.html || eb.focus || eb.hover || eb.toggle || eb.if || eb.visible || eb.unless || eb.hide || eb.enable || eb.disable;
 };
 
+
 export default [
   {
     name: 'default',
     bind: function(bindArg) {
-      if (bindArg.bindName in bindArg.element && !(bindArg.element[bindArg.bindName] instanceof Function)) {
-        // It's an attribute so don't add it as an event
+      if (
+        bindArg.bindName in bindArg.element && !(bindArg.element[bindArg.bindName] instanceof Function)
+      ) {
+        // It's an attribute or a component so don't add it as an event
         return;
       }
       const eventListener = function (event) {
@@ -24,7 +27,7 @@ export default [
   },
   {
     name: 'value',
-    selector: 'select'
+    selector: 'select',
     events: {
       'change': function (bindArg) {
         let newVal = bindArg.element.value;
