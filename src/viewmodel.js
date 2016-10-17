@@ -18,12 +18,23 @@ export default class ViewModel {
     ViewModel.globals.push(obj);
   }
 
+  static prepareRoot() {
+    if (!ViewModel.rootComponents) {
+      const dep = new ViewModel.Tracker.Dependency();
+      ViewModel.rootComponents = new ReactiveArray(dep);
+    }
+  }
+
   static add(component) {
     const name = component.vmComponentName;
     if (!ViewModel.components[name]) {
       ViewModel.components[name] = {};
     }
     ViewModel.components[name][component.vmId] = component;
+    if (!component.parent()) {
+      ViewModel.prepareRoot();
+      ViewModel.rootComponents.push(component);
+    }
   }
 
   static find(nameOrPredicate, predicateOrNothing, onlyOne = false) {
@@ -596,6 +607,8 @@ export default class ViewModel {
         savedOnUrl = null;
       }
 
+      ViewModel.add(component);
+
       component.vmChanged = false;
     }
   }
@@ -609,6 +622,16 @@ export default class ViewModel {
       }
       this.vmComputations.forEach(c => c.stop());
       this.vmRenderComputation.stop();
+      delete ViewModel.components[component.vmComponentName][component.vmId];
+      if (!component.parent()) {
+        for(var i = ViewModel.rootComponents.length - 1; i >= 0; i--) {
+          if(ViewModel.rootComponents[i].vmId === component.vmId) {
+            ViewModel.rootComponents.splice(i, 1);
+            break;
+          }
+        }
+      }
+
       if (old) old.call(component)
       component.vmMounted = false;
     }
@@ -665,6 +688,7 @@ export default class ViewModel {
       if (ViewModel.reactKeyword[prop]) continue;
       if(typeof initial[prop] === 'function') {
         component[prop] = initial[prop].bind(component);
+        component[prop].vmIsFunc = true;
       } else {
         component[prop] = ViewModel.prop(initial[prop], component);
       }
@@ -875,8 +899,7 @@ export default class ViewModel {
         }
       }
     }
-    ViewModel.add(component);
-    
+
     ViewModel.prepareLoad(component);
     for(let global of ViewModel.globals) {
       component.load(global);
@@ -1167,9 +1190,9 @@ ViewModel.properties = {
   signal: 1,
   ref: 1,
   load: 1,
-  onRendered: 1,
-  onCreated: 1,
-  onDestroyed: 1
+  rendered: 1,
+  created: 1,
+  destroyed: 1
 };
 
 // The user can't use these properties
@@ -1197,12 +1220,8 @@ ViewModel.reserved = {
 ViewModel.reactKeyword = {
   render: 1,
   constructor: 1,
-  // getInitialState: 1,
-  // getDefaultProps: 1,
-  // propTypes: 1,
-  // mixins : 1,
-  // statics : 1,
-  // displayName : 1,
+  forceUpdate: 1,
+  setState: 1,
   componentWillReceiveProps : 1,
   shouldComponentUpdate : 1,
   componentWillUpdate : 1,
