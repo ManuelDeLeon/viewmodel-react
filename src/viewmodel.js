@@ -127,7 +127,7 @@ export default class ViewModel {
 
     const changeValue = function (value) {
       if (validator.beforeUpdates.length) {
-        validator.beforeValueUpdate(_value, component);
+        validator.beforeValueUpdate(value, component);
       }
 
       if (value instanceof Array) {
@@ -994,7 +994,7 @@ export default class ViewModel {
     let path = component.vmComponentName;
     const parent = component.parent();
     if (parent) {
-      path = parent.vmComponentName + component.vmPathToParent + '/' + path ;
+      path = ViewModel.getComponentPath(parent) + component.vmPathToParent + '/' + path ;
     } else {
       path = component.vmPathToParent + '/' + path ;
     }
@@ -1214,7 +1214,9 @@ ViewModel.reserved = {
   children: 1,
   child: 1,
   reset: 1,
-  data: 1
+  data: 1,
+  'data-vm-parent': 1,
+  'data-bind': 1
 };
 
 ViewModel.reactKeyword = {
