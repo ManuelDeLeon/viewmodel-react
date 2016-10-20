@@ -1222,6 +1222,7 @@ ViewModel.reserved = {
 
 ViewModel.reactKeyword = {
   render: 1,
+  state: 1,
   constructor: 1,
   forceUpdate: 1,
   setState: 1,
