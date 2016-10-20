@@ -167,6 +167,7 @@ export default class ViewModel {
         return _value;
       }
     };
+    funProp.property = validator;
     funProp.reset = function () {
       reset();
       dependency.changed();
