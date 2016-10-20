@@ -120,14 +120,12 @@ export default class Property {
     for(var fun of this.beforeUpdates) {
       fun.call(context, value);
     }
-    return final;
   }
 
   afterValueUpdate(value, context){
     for(var fun of this.afterUpdates) {
       fun.call(context, value);
     }
-    return final;
   }
 
 
