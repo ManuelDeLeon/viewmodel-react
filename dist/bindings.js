@@ -17,6 +17,10 @@ var changeBinding = function changeBinding(eb) {
 exports.default = [{
   name: 'default',
   bind: function bind(bindArg) {
+    if (bindArg.bindName in bindArg.element && !(bindArg.element[bindArg.bindName] instanceof Function)) {
+      // It's an attribute or a component so don't add it as an event
+      return;
+    }
     var eventListener = function eventListener(event) {
       bindArg.setVmValue(event);
     };
@@ -29,11 +33,14 @@ exports.default = [{
 }, {
   name: 'value',
   events: {
-    'change input propertychange': function changeInputPropertychange(bindArg) {
+    'input change': function inputChange(bindArg) {
       var newVal = bindArg.element.value;
       var vmVal = bindArg.getVmValue();
       vmVal = vmVal == null ? '' : vmVal.toString();
-      if (newVal !== vmVal || bindArg.elementBind.throttle) {
+      if (newVal !== vmVal || bindArg.elementBind.throttle && (!bindArg.viewmodel[bindArg.bindValue].hasOwnProperty('nextVal') || newVal !== bindArg.viewmodel[bindArg.bindValue].nextVal)) {
+        if (bindArg.elementBind.throttle) {
+          bindArg.viewmodel[bindArg.bindValue].nextVal = newVal;
+        }
         bindArg.setVmValue(newVal);
       }
     }
@@ -41,7 +48,7 @@ exports.default = [{
   autorun: function autorun(bindArg) {
     var newVal = bindArg.getVmValue();
     newVal = newVal == null ? '' : newVal.toString();
-    if (newVal !== bindArg.element.value || bindArg.elementBind.throttle) {
+    if (newVal !== bindArg.element.value) {
       bindArg.element.value = newVal;
     }
   }

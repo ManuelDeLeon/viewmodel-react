@@ -258,8 +258,6 @@ var Property = function () {
           }
         }
       }
-
-      return final;
     }
   }, {
     key: "afterValueUpdate",
@@ -288,8 +286,6 @@ var Property = function () {
           }
         }
       }
-
-      return final;
     }
   }, {
     key: "min",

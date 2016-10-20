@@ -34,9 +34,13 @@ var _bindings = require('./bindings');
 
 var _bindings2 = _interopRequireDefault(_bindings);
 
+var _viewmodelOnUrl = require('./viewmodel-onUrl');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var savedOnUrl = [];
 
 var ViewModel = function () {
   function ViewModel() {
@@ -54,6 +58,14 @@ var ViewModel = function () {
       ViewModel.globals.push(obj);
     }
   }, {
+    key: 'prepareRoot',
+    value: function prepareRoot() {
+      if (!ViewModel.rootComponents) {
+        var dep = new ViewModel.Tracker.Dependency();
+        ViewModel.rootComponents = new _reactiveArray2.default(dep);
+      }
+    }
+  }, {
     key: 'add',
     value: function add(component) {
       var name = component.vmComponentName;
@@ -61,6 +73,10 @@ var ViewModel = function () {
         ViewModel.components[name] = {};
       }
       ViewModel.components[name][component.vmId] = component;
+      if (!component.parent()) {
+        ViewModel.prepareRoot();
+        ViewModel.rootComponents.push(component);
+      }
     }
   }, {
     key: 'find',
@@ -105,6 +121,13 @@ var ViewModel = function () {
       }
     }
   }, {
+    key: 'signal',
+    value: function signal(obj) {
+      for (var key in obj) {
+        ViewModel.signals[key] = obj[key];
+      }
+    }
+  }, {
     key: 'share',
     value: function share(obj) {
       for (var key in obj) {
@@ -130,10 +153,7 @@ var ViewModel = function () {
       dependency.changed = function () {
         for (var key in components) {
           var c = components[key];
-          if (!c.vmChanged) {
-            c.vmChanged = true;
-            c.setState({});
-          }
+          c.vmChange();
         }
         oldChanged();
       };
@@ -154,7 +174,7 @@ var ViewModel = function () {
 
       var changeValue = function changeValue(value) {
         if (validator.beforeUpdates.length) {
-          validator.beforeValueUpdate(_value, component);
+          validator.beforeValueUpdate(value, component);
         }
 
         if (value instanceof Array) {
@@ -194,6 +214,7 @@ var ViewModel = function () {
           return _value;
         }
       };
+      funProp.property = validator;
       funProp.reset = function () {
         reset();
         dependency.changed();
@@ -216,43 +237,36 @@ var ViewModel = function () {
       });
 
       var hasAsync = validator.hasAsync();
-      var validDependency = hasAsync && new _tracker2.default.Dependency();
-      var validatingItems = hasAsync && new _reactiveArray2.default([], new ViewModel.Tracker.Dependency());
-      var validationAsync = {};
+      var validationAsync = { count: 0 };
 
       var getDone = hasAsync ? function (initialValue) {
-        validatingItems.push(1);
+        validationAsync.count++;
         return function (result) {
-          validatingItems.pop();
-
-          if (_value === initialValue && validationAsync.value !== _value) {
-            validationAsync = {
-              value: _value,
-              result: result
-            };
-          }
-          component.vmChanged = true;
-          component.setState({});
+          validationAsync.count--;
+          validationAsync.value = initialValue;
+          validationAsync.result = result;
+          dependency.changed();
         };
       } : void 0;
 
       funProp.valid = function (noAsync) {
-
         dependency.depend();
-        if (hasAsync) {
-          validDependency.depend();
-        }
-        if (validationAsync.value === _value) {
-          var retVal = validationAsync.result;
-          if (!validatingItems.length) {
-            //validationAsync = {};
+        var validSync = validator.verify(_value, component);
+        if (!validSync || noAsync || !hasAsync) {
+          if (!validSync) {
+            return false;
+          } else if (hasAsync && validationAsync.value === _value) {
+            return validationAsync.result;
+          } else {
+            return true;
           }
-          return retVal;
+          return validSync;
         } else {
-          if (hasAsync && !noAsync) {
+          if (validationAsync.value === _value) {
+            return validationAsync.result;
+          } else {
             validator.verifyAsync(_value, getDone(_value), component);
           }
-          return validator.verify(_value, component);
         }
       };
 
@@ -272,8 +286,8 @@ var ViewModel = function () {
         if (!hasAsync) {
           return false;
         }
-        validatingItems.depend();
-        return !!validatingItems.length;
+        dependency.depend();
+        return !!validationAsync.count;
       };
 
       funProp.message = function () {
@@ -290,7 +304,7 @@ var ViewModel = function () {
     key: 'getValueRef',
     value: function getValueRef(container, prop) {
       return function (element) {
-        container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
+        container.vmComputations.push(ViewModel.Tracker.autorun(function () {
           var value = container[prop]();
           value = value == null ? "" : value;
           if (element && value != element.value) {
@@ -300,106 +314,24 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'getCheckHook',
-    value: function getCheckHook(container, prop, isCheck) {
-      var valueSetter = ViewModel.setValue(container, prop);
-      return function (element, force) {
-        if (!force && (!element || element.vmCheckHook)) return;
-        element.vmCheckHook = true;
-
-        var changeListener = function changeListener() {
-          if (isCheck || element.type === "checkbox") {
-            valueSetter(element.checked);
-          } else if (element.type === "radio" && element.checked) {
-            valueSetter(element.value);
-            if (element.name) {
-              (function () {
-                var inputs = _reactDom2.default.findDOMNode(container).querySelectorAll('input[type=radio][name=' + element.name + ']');
-                var event = new Event('change');
-                Array.prototype.forEach.call(inputs, function (input, i) {
-                  if (input !== element) {
-                    input.dispatchEvent(event);
-                  }
-                });
-              })();
-            }
-          }
-        };
-
-        element.addEventListener('change', changeListener);
-        container.vmDestroyed.push(function () {
-          element.removeEventListener('change', changeListener);
-        });
-
-        container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
-
-          var value = ViewModel.getValue(container, prop);
-          var elementValue = element.type === "checkbox" ? element.checked : element.value;
-          if (element) {
-            if (value != element.checked) {
-              element.checked = value === elementValue;
-            }
-          }
-        }));
-      };
-    }
-  }, {
-    key: 'getGroupHook',
-    value: function getGroupHook(container, prop, hasCheck, checkProp) {
-      var checkHook = hasCheck && ViewModel.getCheckHook(container, checkProp, true);
-      return function (element) {
-        if (!element || element.vmGroupHook) return;
-        element.vmGroupHook = true;
-        if (checkHook) {
-          checkHook(element);
-        }
-        if (element.type === "radio") {
-          ViewModel.getCheckHook(container, prop)(element, true);
-          return;
-        }
-
-        var changeListener = function changeListener() {
-          var array = ViewModel.getValue(container, prop);
-          var elementValue = element.value;
-          if (element.checked) {
-            if (!~array.indexOf(elementValue)) {
-              array.push(elementValue);
-            }
-          } else {
-            array.remove(elementValue);
-          }
-        };
-        element.addEventListener('change', changeListener);
-        container.vmDestroyed.push(function () {
-          element.removeEventListener('change', changeListener);
-        });
-
-        container.vmAutorun.push(ViewModel.Tracker.autorun(function () {
-          var array = ViewModel.getValue(container, prop);
-          if (!element) return;
-          var inArray = !!~array.indexOf(element.value);
-
-          if (element.checked != inArray) {
-            element.checked = inArray;
-          }
-        }));
-      };
-    }
-  }, {
     key: 'getValue',
-    value: function getValue(container, bindValue, viewmodel, funPropReserved) {
+    value: function getValue(container, repeatObject, repeatIndex, bindValue, viewmodel, funPropReserved) {
       var value = void 0;
-      if (arguments.length < 3) viewmodel = container;
+      if (arguments.length < 5) viewmodel = container;
       bindValue = bindValue.trim();
       var ref = _helper2.default.firstToken(bindValue),
           token = ref[0],
           tokenIndex = ref[1];
       if (~tokenIndex) {
-        var left = ViewModel.getValue(container, bindValue.substring(0, tokenIndex), viewmodel);
-        var right = ViewModel.getValue(container, bindValue.substring(tokenIndex + token.length), viewmodel);
+        var left = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
+        var right = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
         value = _helper2.default.tokens[token.trim()](left, right);
       } else if (bindValue === "this") {
         value = viewmodel;
+      } else if (bindValue === "repeatObject") {
+        value = repeatObject;
+      } else if (bindValue === "repeatIndex") {
+        value = repeatIndex;
       } else if (_helper2.default.isQuoted(bindValue)) {
         value = _helper2.default.removeQuotes(bindValue);
       } else {
@@ -417,57 +349,63 @@ var ViewModel = function () {
         if (breakOnFirstDot) {
           var newBindValue = bindValue.substring(dotIndex + 1);
           var newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
-          var newContainer = ViewModel.getValue(container, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
-          value = ViewModel.getValue(newContainer, newBindValue, viewmodel);
+          var newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
+          value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel);
         } else {
-          var name = bindValue;
-          var args = [];
-          if (~parenIndexStart) {
-            var parsed = ViewModel.parseBind(bindValue);
-            name = Object.keys(parsed)[0];
-            var second = parsed[name];
-            if (second.length > 2) {
-              var ref1 = second.substr(1, second.length - 2).split(',');
-              for (var j = 0, _len = ref1.length; j < _len; j++) {
-                var arg = ref1[j].trim();
-                var newArg = void 0;
-                if (arg === "this") {
-                  newArg = viewmodel;
-                } else if (_helper2.default.isQuoted(arg)) {
-                  newArg = _helper2.default.removeQuotes(arg);
-                } else {
-                  var neg = arg.charAt(0) === '!';
-                  if (neg) {
-                    arg = arg.substring(1);
-                  }
-                  arg = ViewModel.getValue(viewmodel, arg, viewmodel);
-                  if (viewmodel && arg in viewmodel) {
-                    newArg = ViewModel.getValue(viewmodel, arg, viewmodel);
+          if (container == null) {
+            value = undefined;
+          } else {
+            var name = bindValue;
+            var args = [];
+            if (~parenIndexStart) {
+              var parsed = ViewModel.parseBind(bindValue);
+              name = Object.keys(parsed)[0];
+              var second = parsed[name];
+              if (second.length > 2) {
+                var ref1 = second.substr(1, second.length - 2).split(',');
+                for (var j = 0, _len = ref1.length; j < _len; j++) {
+                  var arg = ref1[j].trim();
+                  var newArg = void 0;
+                  if (arg === "this") {
+                    newArg = viewmodel;
+                  } else if (_helper2.default.isQuoted(arg)) {
+                    newArg = _helper2.default.removeQuotes(arg);
                   } else {
-                    newArg = arg;
+                    var neg = arg.charAt(0) === '!';
+                    if (neg) {
+                      arg = arg.substring(1);
+                    }
+                    arg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
+                    if (viewmodel && arg in viewmodel) {
+                      newArg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
+                    } else {
+                      newArg = arg;
+                    }
+                    if (neg) {
+                      newArg = !newArg;
+                    }
                   }
-                  if (neg) {
-                    newArg = !newArg;
-                  }
+                  args.push(newArg);
                 }
-                args.push(newArg);
               }
             }
-          }
-          var primitive = _helper2.default.isPrimitive(name);
-          if (container.vmId && !primitive && !container[name]) {
-            container[name] = ViewModel.prop('', viewmodel);
-          }
-          if (!primitive && !(container != null && (container[name] != null || _helper2.default.isObject(container)))) {
-            var errorMsg = "Can't access '" + name + "' of '" + container + "'.";
-            console.error(errorMsg);
-          } else if (primitive || !name in container) {
-            value = _helper2.default.getPrimitive(name);
-          } else {
-            if (!funPropReserved && _helper2.default.isFunction(container[name])) {
-              value = container[name].apply(container, args);
+            var primitive = _helper2.default.isPrimitive(name);
+            if (container.vmId && !primitive && !container[name]) {
+              container[name] = ViewModel.prop('', viewmodel);
+            }
+            if (!primitive && !(container != null && (container[name] != null || _helper2.default.isObject(container)))) {
+              var errorMsg = "Can't access '" + name + "' of '" + container + "'.";
+              console.error(errorMsg);
+            } else if (primitive) {
+              value = _helper2.default.getPrimitive(name);
+            } else if (!(name in container)) {
+              return undefined;
             } else {
-              value = container[name];
+              if (!funPropReserved && _helper2.default.isFunction(container[name])) {
+                value = container[name].apply(container, args);
+              } else {
+                value = container[name];
+              }
             }
           }
         }
@@ -479,41 +417,41 @@ var ViewModel = function () {
     }
   }, {
     key: 'getVmValueGetter',
-    value: function getVmValueGetter(component, bindValue) {
+    value: function getVmValueGetter(component, repeatObject, repeatIndex, bindValue) {
       return function () {
         var optBindValue = arguments.length <= 0 || arguments[0] === undefined ? bindValue : arguments[0];
 
-        return ViewModel.getValue(component, optBindValue.toString(), component);
+        return ViewModel.getValue(component, repeatObject, repeatIndex, optBindValue.toString(), component);
       };
     }
   }, {
     key: 'getVmValueSetter',
-    value: function getVmValueSetter(component, bindValue) {
+    value: function getVmValueSetter(component, repeatObject, repeatIndex, bindValue) {
       if (!_helper2.default.isString(bindValue)) {
         return function () {};
       }
       if (~bindValue.indexOf(')', bindValue.length - 1)) {
         return function () {
-          return ViewModel.getValue(component, bindValue);
+          return ViewModel.getValue(component, repeatObject, repeatIndex, bindValue);
         };
       } else {
         return function (value) {
-          ViewModel.setValueFull(value, component, bindValue, component);
+          ViewModel.setValueFull(value, repeatObject, repeatIndex, component, bindValue, component);
         };
       }
     }
   }, {
     key: 'setValueFull',
-    value: function setValueFull(value, container, bindValue, viewmodel) {
+    value: function setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel) {
       var i, newBindValue, newContainer;
       if (_helper2.default.dotRegex.test(bindValue)) {
         i = bindValue.search(_helper2.default.dotRegex);
         if (bindValue.charAt(i) !== '.') {
           i += 1;
         }
-        newContainer = ViewModel.getValue(container, bindValue.substring(0, i), viewmodel);
+        newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
         newBindValue = bindValue.substring(i + 1);
-        ViewModel.setValueFull(value, newContainer, newBindValue, viewmodel);
+        ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel);
       } else {
         if (_helper2.default.isFunction(container[bindValue])) {
           container[bindValue](value);
@@ -524,78 +462,46 @@ var ViewModel = function () {
     }
   }, {
     key: 'setValue',
-    value: function setValue(viewmodel, bindValue) {
+    value: function setValue(viewmodel, repeatObject, repeatIndex, bindValue) {
       if (!_helper2.default.isString(bindValue)) {
         return function () {};
       }
       if (~bindValue.indexOf(')', bindValue.length - 1)) {
         return function () {
-          return ViewModel.getValue(viewmodel, bindValue, viewmodel);
+          return ViewModel.getValue(viewmodel, repeatObject, repeatIndex, bindValue, viewmodel);
         };
       } else {
         return function (value) {
-          return ViewModel.setValueFull(value, viewmodel, bindValue, viewmodel);
+          return ViewModel.setValueFull(value, repeatObject, repeatIndex, viewmodel, bindValue, viewmodel);
         };
       }
     }
   }, {
-    key: 'setInputValue',
-    value: function setInputValue(viewmodel, bindValue) {
-      var valueSetter = ViewModel.setValue(viewmodel, bindValue);
-      return function (event) {
-        valueSetter(event.target.value);
-      };
-    }
-  }, {
-    key: 'setInputCheck',
-    value: function setInputCheck(viewmodel, bindValue) {
-      var valueSetter = ViewModel.setValue(viewmodel, bindValue);
-      return function (event) {
-        valueSetter(event.target.checked);
-      };
-    }
-  }, {
-    key: 'setInputGroup',
-    value: function setInputGroup(viewmodel, bindValue) {
-
-      return function (event) {
-        var array = ViewModel.getValue(viewmodel, bindValue);
-        var elementValue = event.target.value;
-        if (event.target.checked) {
-          if (!~array.indexOf(elementValue)) {
-            array.push(elementValue);
-          }
-        } else {
-          array.remove(elementValue);
-        }
-      };
-    }
-  }, {
     key: 'getClass',
-    value: function getClass(component, initialClass, bindText) {
+    value: function getClass(component, repeatObject, repeatIndex, initialClass, bindText) {
       var cssClass = [initialClass];
       if (bindText.trim()[0] === '{') {
         var cssObj = ViewModel.parseBind(bindText);
         for (var key in cssObj) {
           var value = cssObj[key];
-          if (ViewModel.getValue(component, value)) {
+          if (ViewModel.getValue(component, repeatObject, repeatIndex, value)) {
             cssClass.push(key);
           }
         }
       } else {
-        cssClass.push(ViewModel.getValue(component, bindText));
+        cssClass.push(ViewModel.getValue(component, repeatObject, repeatIndex, bindText));
       }
       return cssClass.join(' ');
     }
   }, {
     key: 'getDisabled',
-    value: function getDisabled(component, isEnabled, bindText) {
-      var value = ViewModel.getValue(component, bindText);
+    value: function getDisabled(component, repeatObject, repeatIndex, isEnabled, bindText) {
+      var value = ViewModel.getValue(component, repeatObject, repeatIndex, bindText);
       return !!(isEnabled ? !value : value);
     }
   }, {
     key: 'getStyle',
-    value: function getStyle(component, initialStyle, bindText) {
+    value: function getStyle(component, repeatObject, repeatIndex, initialStyle, bindText) {
       var initialStyles = void 0;
       if (!!initialStyle) {
         initialStyles = ViewModel.parseBind(initialStyle.split(";").join(","));
@@ -614,7 +520,7 @@ var ViewModel = function () {
           for (var _iterator = items[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
             var item = _step.value;
 
-            var vmValue = ViewModel.getValue(component, item);
+            var vmValue = ViewModel.getValue(component, repeatObject, repeatIndex, item);
             var bag = _helper2.default.isString(vmValue) ? ViewModel.parseBind(vmValue) : vmValue;
             for (var key in bag) {
               var value = bag[key];
@@ -640,10 +546,10 @@ var ViewModel = function () {
         var preObjectStyles = ViewModel.parseBind(bindText);
         for (var _key in preObjectStyles) {
           var _value2 = preObjectStyles[_key];
-          objectStyles[_key] = ViewModel.getValue(component, _value2);
+          objectStyles[_key] = ViewModel.getValue(component, repeatObject, repeatIndex, _value2);
         }
       } else {
-        var _vmValue = ViewModel.getValue(component, bindText);
+        var _vmValue = ViewModel.getValue(component, repeatObject, repeatIndex, bindText);
         if (_helper2.default.isString(_vmValue)) {
           var newValue = _vmValue.split(";").join(",");
           objectStyles = ViewModel.parseBind(newValue);
@@ -679,7 +585,7 @@ var ViewModel = function () {
             } else if (container[key] && container[key].vmPropId && _helper2.default.isFunction(container[key])) {
               container[key](value);
             } else {
-              container[key] = ViewModel.prop(value, container);
+              container[key] = ViewModel.prop(value, component);
             }
           }
         }
@@ -712,7 +618,7 @@ var ViewModel = function () {
             // Stop autorun here so rendering "phase" doesn't have extra work of also stopping autoruns; likely not too
             // important though.
             if (component[name]) component[name].stop();
-            component.setState({});
+            component.vmChange();
           }
         });
       });
@@ -725,11 +631,20 @@ var ViewModel = function () {
       component.componentWillMount = function () {
         var _this = this;
 
-        if (this.props.parent && this.props.parent.children) this.props.parent.children().push(this);
+        var parent = this.props['data-vm-parent'];
+        if (parent && parent.children) {
+          parent.children().push(this);
+        }
         this.parent = function () {
-          this.vmDependsOnParent = true;
-          return this.props.parent;
+          parent = this.props['data-vm-parent'];
+          if (parent && parent.vmId) {
+            this.vmDependsOnParent = true;
+            return parent;
+          } else {
+            return undefined;
+          }
         };
+        this.load(this.props);
 
         var _iteratorNormalCompletion2 = true;
         var _didIteratorError2 = false;
@@ -756,23 +671,28 @@ var ViewModel = function () {
           }
         }
 
-        this.load(this.props);
+        var oldRender = this.render;
+        this.render = function () {
+          return ViewModel.autorunOnce(oldRender, _this);
+        };
+        if (old) old.call(component);
+      };
+    }
+  }, {
+    key: 'prepareComponentDidMount',
+    value: function prepareComponentDidMount(component) {
+      var old = component.componentDidMount;
+      component.componentDidMount = function () {
+        component.vmMounted = true;
         var _iteratorNormalCompletion3 = true;
         var _didIteratorError3 = false;
         var _iteratorError3 = undefined;
 
         try {
-          for (var _iterator3 = component.vmAutorun[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-            var autorun = _step3.value;
+          for (var _iterator3 = component.vmRendered[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+            var fun = _step3.value;
 
-            (function (autorun) {
-              var fun = function fun(c) {
-                autorun.call(component, c);
-              };
-              component.vmRendered.push(function () {
-                component.vmComputations.push(ViewModel.Tracker.autorun(fun));
-              });
-            })(autorun);
+            fun.call(component);
           }
         } catch (err) {
           _didIteratorError3 = true;
@@ -789,27 +709,21 @@ var ViewModel = function () {
           }
         }
 
-        var oldRender = this.render;
-        this.render = function () {
-          return ViewModel.autorunOnce(oldRender, _this);
-        };
-        if (old) old.call(component);
-      };
-    }
-  }, {
-    key: 'prepareComponentDidMount',
-    value: function prepareComponentDidMount(component) {
-      var old = component.componentDidMount;
-      component.componentDidMount = function () {
         var _iteratorNormalCompletion4 = true;
         var _didIteratorError4 = false;
         var _iteratorError4 = undefined;
 
         try {
-          for (var _iterator4 = component.vmRendered[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-            var fun = _step4.value;
+          var _loop = function _loop() {
+            var autorun = _step4.value;
 
-            fun.call(component);
+            component.vmComputations.push(ViewModel.Tracker.autorun(function (c) {
+              autorun.call(component, c);
+            }));
+          };
+
+          for (var _iterator4 = component.vmAutorun[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+            _loop();
           }
         } catch (err) {
           _didIteratorError4 = true;
@@ -827,6 +741,35 @@ var ViewModel = function () {
         }
 
         if (old) old.call(component);
+
+        component.vmPathToRoot = ViewModel.getPathToRoot(component);
+        component.vmPathToParent = ViewModel.getPathToParent(component);
+
+        if (component.onUrl) {
+          var saveOnUrl = function saveOnUrl(component) {
+            return function () {
+              ViewModel.loadUrl(component);
+              ViewModel.saveUrl(component);
+            };
+          };
+          var toSave = saveOnUrl(component);
+          if (savedOnUrl) {
+            savedOnUrl.push(toSave);
+          } else {
+            toSave();
+          }
+        }
+
+        if (savedOnUrl && !component.parent()) {
+          savedOnUrl.forEach(function (fun) {
+            fun();
+          });
+          savedOnUrl = null;
+        }
+
+        ViewModel.add(component);
+
+        component.vmChanged = false;
       };
     }
   }, {
@@ -839,6 +782,7 @@ var ViewModel = function () {
         var _iteratorError5 = undefined;
 
         try {
+
           for (var _iterator5 = component.vmDestroyed[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
             var fun = _step5.value;
 
@@ -863,7 +807,18 @@ var ViewModel = function () {
           return c.stop();
         });
         this.vmRenderComputation.stop();
+        delete ViewModel.components[component.vmComponentName][component.vmId];
+        if (!component.parent()) {
+          for (var i = ViewModel.rootComponents.length - 1; i >= 0; i--) {
+            if (ViewModel.rootComponents[i].vmId === component.vmId) {
+              ViewModel.rootComponents.splice(i, 1);
+              break;
+            }
+          }
+        }
+
         if (old) old.call(component);
+        component.vmMounted = false;
       };
     }
   }, {
@@ -880,9 +835,39 @@ var ViewModel = function () {
     value: function prepareShouldComponentUpdate(component) {
       if (!component.shouldComponentUpdate) {
         component.shouldComponentUpdate = function () {
-          return !!(component.vmChanged || component.vmDependsOnParent && component.parent().vmChanged);
+          var parent = component.parent();
+          if (component.vmChanged || component.vmDependsOnParent && parent.vmChanged) {
+
+            if (parent && !parent.vmChanged && !component.hasOwnProperty('vmUpdateParent')) {
+              for (var ref in parent.refs) {
+                if (parent.refs[ref] === component) {
+                  component.vmUpdateParent = true;
+                  break;
+                }
+              }
+              if (!component.vmUpdateParent) {
+                // Create the property in the component
+                component.vmUpdateParent = false;
+              }
+            }
+            if (component.vmUpdateParent) {
+              parent.vmChange();
+            }
+            return true;
+          }
+
+          return false;
         };
       }
+    }
+  }, {
+    key: 'prepareComponentWillReceiveProps',
+    value: function prepareComponentWillReceiveProps(component) {
+      var old = component.componentWillReceiveProps;
+      component.componentWillReceiveProps = function (props) {
+        this.load(props);
+        if (old) old.call(component);
+      };
     }
   }, {
     key: 'prepareMethodsAndProperties',
@@ -891,6 +876,7 @@ var ViewModel = function () {
         if (ViewModel.reactKeyword[prop]) continue;
         if (typeof initial[prop] === 'function') {
           component[prop] = initial[prop].bind(component);
+          component[prop].vmIsFunc = true;
         } else {
           component[prop] = ViewModel.prop(initial[prop], component);
         }
@@ -902,8 +888,7 @@ var ViewModel = function () {
       var dependency = new ViewModel.Tracker.Dependency();
       var oldChanged = dependency.changed.bind(dependency);
       dependency.changed = function () {
-        component.vmChanged = true;
-        component.setState({});
+        component.vmChange();
         oldChanged();
       };
       var array = new _reactiveArray2.default([], dependency);
@@ -919,6 +904,28 @@ var ViewModel = function () {
         }
       };
       component.children = funProp;
+    }
+  }, {
+    key: 'prepareData',
+    value: function prepareData(component) {
+
+      component.data = function () {
+        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+
+        var js = {};
+        for (var prop in component) {
+          if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+            component[prop].depend();
+            var value = component[prop].value;
+            if (value instanceof Array) {
+              js[prop] = value.array();
+            } else {
+              js[prop] = value;
+            }
+          }
+        }
+        return js;
+      };
     }
   }, {
     key: 'prepareValidations',
@@ -978,8 +985,20 @@ var ViewModel = function () {
       };
     }
   }, {
+    key: 'prepareReset',
+    value: function prepareReset(component) {
+
+      component.reset = function () {
+        for (var prop in component) {
+          if (component[prop] && component[prop].vmPropId) {
+            component[prop].reset();
+          }
+        }
+      };
+    }
+  }, {
     key: 'loadMixinShare',
-    value: function loadMixinShare(toLoad, collection, component) {
+    value: function loadMixinShare(toLoad, collection, component, bag) {
       if (!toLoad) return;
       if (toLoad instanceof Array) {
         var _iteratorNormalCompletion6 = true;
@@ -992,8 +1011,9 @@ var ViewModel = function () {
 
             if (_helper2.default.isString(element)) {
               component.load(collection[element]);
+              bag[element] = null;
             } else {
-              ViewModel.loadMixinShare(element, collection, component);
+              ViewModel.loadMixinShare(element, collection, component, bag);
             }
           }
         } catch (err) {
@@ -1012,6 +1032,7 @@ var ViewModel = function () {
         }
       } else if (_helper2.default.isString(toLoad)) {
         component.load(collection[toLoad]);
+        bag[toLoad] = null;
       } else {
         for (var ref in toLoad) {
           var container = {};
@@ -1026,6 +1047,7 @@ var ViewModel = function () {
                 var item = _step7.value;
 
                 ViewModel.load(collection[item], container, component);
+                bag[item] = ref;
               }
             } catch (err) {
               _didIteratorError7 = true;
@@ -1043,6 +1065,7 @@ var ViewModel = function () {
             }
           } else {
             ViewModel.load(collection[mixshare], container, component);
+            bag[mixshare] = ref;
           }
           component[ref] = container;
         }
@@ -1054,11 +1077,40 @@ var ViewModel = function () {
       component.load = function (toLoad) {
         if (!toLoad) return;
 
-        // Shared
-        ViewModel.loadMixinShare(toLoad.share, ViewModel.shared, component);
+        // Signals
+        var _iteratorNormalCompletion8 = true;
+        var _didIteratorError8 = false;
+        var _iteratorError8 = undefined;
+
+        try {
+          for (var _iterator8 = ViewModel.signalsToLoad(toLoad.signal, component)[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+            var signal = _step8.value;
+
+            component.load(signal);
+            component.vmCreated.push(signal.onCreated);
+            component.vmDestroyed.push(signal.onDestroyed);
+          }
+
+          // Shared
+        } catch (err) {
+          _didIteratorError8 = true;
+          _iteratorError8 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion8 && _iterator8.return) {
+              _iterator8.return();
+            }
+          } finally {
+            if (_didIteratorError8) {
+              throw _iteratorError8;
+            }
+          }
+        }
+
+        ViewModel.loadMixinShare(toLoad.share, ViewModel.shared, component, component.vmShares);
 
         // Mixins
-        ViewModel.loadMixinShare(toLoad.mixin, ViewModel.mixins, component);
+        ViewModel.loadMixinShare(toLoad.mixin, ViewModel.mixins, component, component.vmMixins);
 
         // Whatever is in 'load' is loaded before direct properties
         component.load(toLoad.load);
@@ -1078,8 +1130,29 @@ var ViewModel = function () {
           if (!toLoad[hook]) continue;
           var vmProp = hooks[hook];
           if (toLoad[hook] instanceof Array) {
-            for (var item in toLoad[hook]) {
-              component[vmProp].push(item);
+            var _iteratorNormalCompletion9 = true;
+            var _didIteratorError9 = false;
+            var _iteratorError9 = undefined;
+
+            try {
+              for (var _iterator9 = toLoad[hook][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+                var item = _step9.value;
+
+                component[vmProp].push(item);
+              }
+            } catch (err) {
+              _didIteratorError9 = true;
+              _iteratorError9 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion9 && _iterator9.return) {
+                  _iterator9.return();
+                }
+              } finally {
+                if (_didIteratorError9) {
+                  throw _iteratorError9;
+                }
+              }
             }
           } else {
             component[vmProp].push(toLoad[hook]);
@@ -1097,31 +1170,49 @@ var ViewModel = function () {
       component.vmRendered = [];
       component.vmDestroyed = [];
       component.vmAutorun = [];
+      component.vmMixins = {};
+      component.vmShares = {};
+      component.vmSignals = {};
+      var getHasComposition = function getHasComposition(bag) {
+        return function (name, prop) {
+          return bag.hasOwnProperty(name) && (!bag[name] || bag[name] === prop);
+        };
+      };
+      component.hasMixin = getHasComposition(component.vmMixins);
+      component.hasShare = getHasComposition(component.vmShares);
+      component.hasSignal = getHasComposition(component.vmSignals);
 
-      ViewModel.add(component);
+      component.vmChange = function () {
+        if (!component.vmChanged) {
+          component.vmChanged = true;
+          if (component.vmMounted) {
+            component.setState({});
+          }
+        }
+      };
 
       ViewModel.prepareLoad(component);
-      var _iteratorNormalCompletion8 = true;
-      var _didIteratorError8 = false;
-      var _iteratorError8 = undefined;
+      var _iteratorNormalCompletion10 = true;
+      var _didIteratorError10 = false;
+      var _iteratorError10 = undefined;
 
       try {
-        for (var _iterator8 = ViewModel.globals[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-          var global = _step8.value;
+        for (var _iterator10 = ViewModel.globals[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+          var global = _step10.value;
 
           component.load(global);
         }
       } catch (err) {
-        _didIteratorError8 = true;
-        _iteratorError8 = err;
+        _didIteratorError10 = true;
+        _iteratorError10 = err;
       } finally {
         try {
-          if (!_iteratorNormalCompletion8 && _iterator8.return) {
-            _iterator8.return();
+          if (!_iteratorNormalCompletion10 && _iterator10.return) {
+            _iterator10.return();
           }
         } finally {
-          if (_didIteratorError8) {
-            throw _iteratorError8;
+          if (_didIteratorError10) {
+            throw _iteratorError10;
           }
         }
       }
@@ -1135,7 +1226,10 @@ var ViewModel = function () {
       ViewModel.prepareComponentDidUpdate(component);
       ViewModel.prepareComponentWillUnmount(component);
       ViewModel.prepareShouldComponentUpdate(component);
+      ViewModel.prepareComponentWillReceiveProps(component);
       ViewModel.prepareValidations(component);
+      ViewModel.prepareData(component);
+      ViewModel.prepareReset(component);
     }
   }, {
     key: 'addBinding',
@@ -1150,7 +1244,7 @@ var ViewModel = function () {
     }
   }, {
     key: 'bindElement',
-    value: function bindElement(component, bindingText) {
+    value: function bindElement(component, repeatObject, repeatIndex, bindingText) {
       return function (element) {
         if (!element || element.vmBound) return;
         element.vmBound = true;
@@ -1161,40 +1255,40 @@ var ViewModel = function () {
           if (ViewModel.compiledBindings[bindName]) continue;
           var bindValue = bindObject[bindName];
           if (~bindName.indexOf(' ')) {
-            var _iteratorNormalCompletion9 = true;
-            var _didIteratorError9 = false;
-            var _iteratorError9 = undefined;
+            var _iteratorNormalCompletion11 = true;
+            var _didIteratorError11 = false;
+            var _iteratorError11 = undefined;
 
             try {
-              for (var _iterator9 = bindName.split(' ')[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-                var bindNameSingle = _step9.value;
+              for (var _iterator11 = bindName.split(' ')[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+                var bindNameSingle = _step11.value;
 
-                ViewModel.bindSingle(component, bindObject, element, bindNameSingle, bindId);
+                ViewModel.bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindNameSingle, bindId);
               }
             } catch (err) {
-              _didIteratorError9 = true;
-              _iteratorError9 = err;
+              _didIteratorError11 = true;
+              _iteratorError11 = err;
             } finally {
               try {
-                if (!_iteratorNormalCompletion9 && _iterator9.return) {
-                  _iterator9.return();
+                if (!_iteratorNormalCompletion11 && _iterator11.return) {
+                  _iterator11.return();
                 }
               } finally {
-                if (_didIteratorError9) {
-                  throw _iteratorError9;
+                if (_didIteratorError11) {
+                  throw _iteratorError11;
                 }
               }
             }
           } else {
-            ViewModel.bindSingle(component, bindObject, element, bindName, bindId);
+            ViewModel.bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId);
           }
         }
       };
     }
   }, {
     key: 'bindSingle',
-    value: function bindSingle(component, bindObject, element, bindName, bindId) {
-      var bindArg = ViewModel.getBindArgument(component, bindObject, element, bindName, bindId);
+    value: function bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId) {
+      var bindArg = ViewModel.getBindArgument(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId);
       var binding = ViewModel.getBinding(bindName, bindArg);
       if (!binding) return;
 
@@ -1219,27 +1313,27 @@ var ViewModel = function () {
         for (var eventName in binding.events) {
           var eventFunc = binding.events[eventName];
           if (~eventName.indexOf(' ')) {
-            var _iteratorNormalCompletion10 = true;
-            var _didIteratorError10 = false;
-            var _iteratorError10 = undefined;
+            var _iteratorNormalCompletion12 = true;
+            var _didIteratorError12 = false;
+            var _iteratorError12 = undefined;
 
             try {
-              for (var _iterator10 = eventName.split(' ')[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-                var event = _step10.value;
+              for (var _iterator12 = eventName.split(' ')[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+                var event = _step12.value;
 
                 func(event, eventFunc);
               }
             } catch (err) {
-              _didIteratorError10 = true;
-              _iteratorError10 = err;
+              _didIteratorError12 = true;
+              _iteratorError12 = err;
             } finally {
               try {
-                if (!_iteratorNormalCompletion10 && _iterator10.return) {
-                  _iterator10.return();
+                if (!_iteratorNormalCompletion12 && _iterator12.return) {
+                  _iterator12.return();
                 }
               } finally {
-                if (_didIteratorError10) {
-                  throw _iteratorError10;
+                if (_didIteratorError12) {
+                  throw _iteratorError12;
                 }
               }
             }
@@ -1247,6 +1341,67 @@ var ViewModel = function () {
             func(eventName, eventFunc);
           }
         }
+      }
+    }
+  }, {
+    key: 'getComponentPath',
+    value: function getComponentPath(component) {
+      var path = component.vmComponentName;
+      var parent = component.parent();
+      if (parent) {
+        path = ViewModel.getComponentPath(parent) + component.vmPathToParent + '/' + path;
+      } else {
+        path = component.vmPathToParent + '/' + path;
+      }
+
+      return path;
+    }
+  }, {
+    key: 'getPathToRoot',
+    value: function getPathToRoot(component) {
+      var difference, i, parentPath, viewmodelPath;
+      return ViewModel.getElementPath(_reactDom2.default.findDOMNode(component));
+    }
+  }, {
+    key: 'getPathToParent',
+    value: function getPathToParent(component) {
+      var difference, i, parentPath, viewmodelPath;
+      var parent = component.parent();
+      if (!parent) {
+        return '/';
+      }
+      viewmodelPath = component.vmPathToRoot;
+      if (!parent.vmPathToRoot) {
+        parent.vmPathToRoot = ViewModel.getPathToRoot(parent);
+      }
+      parentPath = component.parent().vmPathToRoot;
+
+      i = 0;
+      while (parentPath[i] === viewmodelPath[i] && parentPath[i] != null) {
+        i++;
+      }
+      difference = viewmodelPath.substr(i);
+      return difference;
+    }
+  }, {
+    key: 'getElementPath',
+    value: function getElementPath(element) {
+      var i, ix, sibling, siblings;
+      if (!element || !element.parentNode || element.tagName === 'HTML' || element === document.body) {
+        return '/';
+      }
+      ix = 0;
+      siblings = element.parentNode.childNodes;
+      i = 0;
+      while (i < siblings.length) {
+        sibling = siblings[i];
+        if (sibling === element) {
+          return ViewModel.getElementPath(element.parentNode) + '/' + element.tagName + '[' + (ix + 1) + ']';
+        }
+        if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
+          ix++;
+        }
+        i++;
       }
     }
   }, {
@@ -1269,7 +1424,7 @@ var ViewModel = function () {
     }
   }, {
     key: 'getBindArgument',
-    value: function getBindArgument(component, bindObject, element, bindName, bindId) {
+    value: function getBindArgument(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId) {
       var getDelayedSetter = function getDelayedSetter(bindArg, setter) {
         if (bindArg.elementBind.throttle) {
           return function () {
@@ -1290,17 +1445,151 @@ var ViewModel = function () {
           var fun = function fun(c) {
             f(bindArg, c);
           };
-          component.vmAutorun.push(ViewModel.Tracker.autorun(fun));
+          component.vmComputations.push(ViewModel.Tracker.autorun(fun));
         },
         component: component,
         element: element,
         elementBind: bindObject,
         bindName: bindName,
         bindValue: bindObject[bindName],
-        getVmValue: ViewModel.getVmValueGetter(component, bindObject[bindName])
+        getVmValue: ViewModel.getVmValueGetter(component, repeatObject, repeatIndex, bindObject[bindName])
       };
-      bindArg.setVmValue = getDelayedSetter(bindArg, ViewModel.getVmValueSetter(component, bindObject[bindName]));
+      bindArg.setVmValue = getDelayedSetter(bindArg, ViewModel.getVmValueSetter(component, repeatObject, repeatIndex, bindObject[bindName]));
       return bindArg;
+    }
+  }, {
+    key: 'throttle',
+    value: function throttle(func, wait, options) {
+      var context, args, result;
+      var timeout = null;
+      var previous = 0;
+      if (!options) options = {};
+      var later = function later() {
+        previous = options.leading === false ? 0 : _.now();
+        timeout = null;
+        result = func.apply(context, args);
+        if (!timeout) context = args = null;
+      };
+      return function () {
+        var now = _.now();
+        if (!previous && options.leading === false) previous = now;
+        var remaining = wait - (now - previous);
+        context = this;
+        args = arguments;
+        if (remaining <= 0 || remaining > wait) {
+          if (timeout) {
+            clearTimeout(timeout);
+            timeout = null;
+          }
+          previous = now;
+          result = func.apply(context, args);
+          if (!timeout) context = args = null;
+        } else if (!timeout && options.trailing !== false) {
+          timeout = setTimeout(later, remaining);
+        }
+        return result;
+      };
+    }
+  }, {
+    key: 'signalContainer',
+    value: function signalContainer(containerName, container) {
+      var all = [];
+      if (containerName) {
+        var signalObject = ViewModel.signals[containerName];
+        for (var key in signalObject) {
+          var value = signalObject[key];
+          (function (key, value) {
+            var single = {};
+            single[key] = {};
+            var transform = value.transform || function (e) {
+              return e;
+            };
+            var boundProp = '_' + key + '_Bound';
+            single.onCreated = function () {
+              var vmProp = container[key];
+              var func = function func(e) {
+                vmProp(transform(e));
+              };
+              var funcToUse = value.throttle ? ViewModel.throttle(func, value.throttle) : func;
+              container[boundProp] = funcToUse;
+              value.target.addEventListener(value.event, this[boundProp]);
+              var event = new Event(value.event);
+              value.target.dispatchEvent(event);
+            };
+            single.onDestroyed = function () {
+              value.target.removeEventListener(value.event, this[boundProp]);
+            };
+            all.push(single);
+          })(key, value);
+        }
+      }
+      return all;
+    }
+  }, {
+    key: 'signalsToLoad',
+    value: function signalsToLoad(containerName, container) {
+      if (containerName instanceof Array) {
+        var signals = [];
+        var _iteratorNormalCompletion13 = true;
+        var _didIteratorError13 = false;
+        var _iteratorError13 = undefined;
+
+        try {
+          for (var _iterator13 = containerName[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
+            var name = _step13.value;
+            var _iteratorNormalCompletion14 = true;
+            var _didIteratorError14 = false;
+            var _iteratorError14 = undefined;
+
+            try {
+              for (var _iterator14 = ViewModel.signalContainer(name, container)[Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
+                var signal = _step14.value;
+
+                signals.push(signal);
+              }
+            } catch (err) {
+              _didIteratorError14 = true;
+              _iteratorError14 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion14 && _iterator14.return) {
+                  _iterator14.return();
+                }
+              } finally {
+                if (_didIteratorError14) {
+                  throw _iteratorError14;
+                }
+              }
+            }
+          }
+        } catch (err) {
+          _didIteratorError13 = true;
+          _iteratorError13 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion13 && _iterator13.return) {
+              _iterator13.return();
+            }
+          } finally {
+            if (_didIteratorError13) {
+              throw _iteratorError13;
+            }
+          }
+        }
+
+        return signals;
+      } else {
+        return ViewModel.signalContainer(containerName, container);
+      }
+    }
+  }, {
+    key: 'loadComponent',
+    value: function loadComponent(comp) {
+      var vm = {};
+      ViewModel.prepareComponent('TestComponent', vm, null);
+      vm.load(comp);
+      vm.reset();
+      return vm;
     }
   }]);
 
@@ -1322,9 +1611,9 @@ ViewModel.properties = {
   signal: 1,
   ref: 1,
   load: 1,
-  onRendered: 1,
-  onCreated: 1,
-  onDestroyed: 1
+  rendered: 1,
+  created: 1,
+  destroyed: 1
 };
 
 // The user can't use these properties
@@ -1339,23 +1628,24 @@ ViewModel.reserved = {
   vmEvents: 1,
   vmInitial: 1,
   vmPropId: 1,
+  vmMounted: 1,
+  vmElementBind: 1,
   templateInstance: 1,
   parent: 1,
   children: 1,
   child: 1,
   reset: 1,
-  data: 1
+  data: 1,
+  'data-vm-parent': 1,
+  'data-bind': 1
 };
 
 ViewModel.reactKeyword = {
   render: 1,
+  state: 1,
   constructor: 1,
-  // getInitialState: 1,
-  // getDefaultProps: 1,
-  // propTypes: 1,
-  // mixins : 1,
-  // statics : 1,
-  // displayName : 1,
+  forceUpdate: 1,
+  setState: 1,
   componentWillReceiveProps: 1,
   shouldComponentUpdate: 1,
   componentWillUpdate: 1,
@@ -1379,13 +1669,16 @@ ViewModel.compiledBindings = {
   html: 1,
   'class': 1,
   'if': 1,
-  'style': 1
+  'style': 1,
+  repeat: 1,
+  key: 1
 };
 
 ViewModel.globals = [];
 ViewModel.components = {};
 ViewModel.mixins = {};
 ViewModel.shared = {};
+ViewModel.signals = {};
 ViewModel.bindings = {};
 
 Object.defineProperties(ViewModel, {
@@ -1395,28 +1688,30 @@ Object.defineProperties(ViewModel, {
 });
 
 ViewModel.Property = _viewmodelProperty2.default;
+ViewModel.saveUrl = (0, _viewmodelOnUrl.getSaveUrl)(ViewModel);
+ViewModel.loadUrl = (0, _viewmodelOnUrl.getLoadUrl)(ViewModel);
 
-var _iteratorNormalCompletion11 = true;
-var _didIteratorError11 = false;
-var _iteratorError11 = undefined;
+var _iteratorNormalCompletion15 = true;
+var _didIteratorError15 = false;
+var _iteratorError15 = undefined;
 
 try {
-  for (var _iterator11 = _bindings2.default[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-    var binding = _step11.value;
+  for (var _iterator15 = _bindings2.default[Symbol.iterator](), _step15; !(_iteratorNormalCompletion15 = (_step15 = _iterator15.next()).done); _iteratorNormalCompletion15 = true) {
+    var binding = _step15.value;
 
     ViewModel.addBinding(binding);
   }
 } catch (err) {
-  _didIteratorError11 = true;
-  _iteratorError11 = err;
+  _didIteratorError15 = true;
+  _iteratorError15 = err;
 } finally {
   try {
-    if (!_iteratorNormalCompletion11 && _iterator11.return) {
-      _iterator11.return();
+    if (!_iteratorNormalCompletion15 && _iterator15.return) {
+      _iterator15.return();
     }
   } finally {
-    if (_didIteratorError11) {
-      throw _iteratorError11;
+    if (_didIteratorError15) {
+      throw _iteratorError15;
     }
   }
 }
