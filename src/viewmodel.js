@@ -1142,7 +1142,8 @@ export default class ViewModel {
               const funcToUse = value.throttle ? ViewModel.throttle(func, value.throttle) : func;
               container[boundProp] = funcToUse;
               value.target.addEventListener(value.event, this[boundProp]);
-              const event = new Event(value.event);
+              var event = document.createEvent('HTMLEvents');
+              event.initEvent(value.event, true, false);
               value.target.dispatchEvent(event);
             }
             single.onDestroyed = function() {
