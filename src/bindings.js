@@ -46,7 +46,8 @@ export default [
       if (newVal !== bindArg.element.value) {
         bindArg.element.value = newVal;
       }
-      const event = new Event('change');
+      var event = document.createEvent('HTMLEvents');
+      event.initEvent('change', true, false);
       bindArg.element.dispatchEvent(event);
     },
   },
@@ -75,7 +76,8 @@ export default [
         bindArg.setVmValue(checked);
         if (checked && bindArg.element.name) {
           const inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll(`input[type=radio][name=${ bindArg.element.name }]`);
-          const event = new Event('change');
+          var event = document.createEvent('HTMLEvents');
+          event.initEvent('change', true, false);
           Array.prototype.forEach.call(inputs, function (input, i) {
             if (input !== bindArg.element) {
               input.dispatchEvent(event);
@@ -128,7 +130,8 @@ export default [
           if (bindArg.element.name) {
 
             const inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll(`input[type=radio][name=${ bindArg.element.name }]`);
-            const event = new Event('change');
+            var event = document.createEvent('HTMLEvents');
+            event.initEvent('change', true, false);
             Array.prototype.forEach.call(inputs, function (input, i) {
               if (input !== bindArg.element) {
                 input.dispatchEvent(event);
