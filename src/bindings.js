@@ -46,6 +46,8 @@ export default [
       if (newVal !== bindArg.element.value) {
         bindArg.element.value = newVal;
       }
+      const event = new Event('change');
+      bindArg.element.dispatchEvent(event);
     },
   },
 
