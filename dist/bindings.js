@@ -51,6 +51,9 @@ exports.default = [{
     if (newVal !== bindArg.element.value) {
       bindArg.element.value = newVal;
     }
+    var event = document.createEvent('HTMLEvents');
+    event.initEvent('change', true, false);
+    bindArg.element.dispatchEvent(event);
   }
 }, {
   name: 'check',
@@ -74,15 +77,14 @@ exports.default = [{
       var checked = bindArg.element.checked;
       bindArg.setVmValue(checked);
       if (checked && bindArg.element.name) {
-        (function () {
-          var inputs = _reactDom2.default.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
-          var event = new Event('change');
-          Array.prototype.forEach.call(inputs, function (input, i) {
-            if (input !== bindArg.element) {
-              input.dispatchEvent(event);
-            }
-          });
-        })();
+        var inputs = _reactDom2.default.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
+        var event = document.createEvent('HTMLEvents');
+        event.initEvent('change', true, false);
+        Array.prototype.forEach.call(inputs, function (input, i) {
+          if (input !== bindArg.element) {
+            input.dispatchEvent(event);
+          }
+        });
       }
     }
   },
@@ -126,16 +128,15 @@ exports.default = [{
       if (bindArg.element.checked) {
         bindArg.setVmValue(bindArg.element.value);
         if (bindArg.element.name) {
-          (function () {
 
-            var inputs = _reactDom2.default.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
-            var event = new Event('change');
-            Array.prototype.forEach.call(inputs, function (input, i) {
-              if (input !== bindArg.element) {
-                input.dispatchEvent(event);
-              }
-            });
-          })();
+          var inputs = _reactDom2.default.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
+          var event = document.createEvent('HTMLEvents');
+          event.initEvent('change', true, false);
+          Array.prototype.forEach.call(inputs, function (input, i) {
+            if (input !== bindArg.element) {
+              input.dispatchEvent(event);
+            }
+          });
         }
       }
     }

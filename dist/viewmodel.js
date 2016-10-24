@@ -1513,7 +1513,8 @@ var ViewModel = function () {
               var funcToUse = value.throttle ? ViewModel.throttle(func, value.throttle) : func;
               container[boundProp] = funcToUse;
               value.target.addEventListener(value.event, this[boundProp]);
-              var event = new Event(value.event);
+              var event = document.createEvent('HTMLEvents');
+              event.initEvent(value.event, true, false);
               value.target.dispatchEvent(event);
             };
             single.onDestroyed = function () {
