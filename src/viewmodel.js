@@ -5,7 +5,8 @@ import Property from './viewmodel-property';
 import parseBind from './parseBind';
 import presetBindings from './bindings'
 import { getSaveUrl, getLoadUrl } from './viewmodel-onUrl';
-const ReactDOM = navigator.project === 'ReactNative' ? null : require('react-dom');
+const IS_NATIVE = 'IS_NATIVE';
+let ReactDOM;
 
 let savedOnUrl = [];
 
@@ -1004,9 +1005,18 @@ export default class ViewModel {
   }
 
   static getPathToRoot(component) {
-    if (!ReactDOM) return '/';
-    var difference, i, parentPath, viewmodelPath;
-    return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
+    if (!ReactDOM) {
+      ReactDOM = navigator.project === 'ReactNative' ? IS_NATIVE : require('react-dom');
+    }
+
+    if (ReactDOM === IS_NATIVE){
+      return '/';
+    } else {
+      var difference, i, parentPath, viewmodelPath;
+      return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
+    }
+
+
   };
 
   static getPathToParent(component) {

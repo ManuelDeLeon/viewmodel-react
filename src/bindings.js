@@ -1,4 +1,5 @@
-const ReactDOM = navigator.project === 'ReactNative' ? null : require('react-dom');
+const IS_NATIVE = 'IS_NATIVE';
+let ReactDOM;
 
 const changeBinding = function(eb) {
   return eb.value || eb.check || eb.text || eb.html || eb.focus || eb.hover || eb.toggle || eb.if || eb.visible || eb.unless || eb.hide || eb.enable || eb.disable;
@@ -74,7 +75,10 @@ export default [
       'change': function(bindArg) {
         const checked = bindArg.element.checked;
         bindArg.setVmValue(checked);
-        if (checked && bindArg.element.name && ReactDOM) {
+        if (!ReactDOM) {
+          ReactDOM = navigator.project === 'ReactNative' ? IS_NATIVE : require('react-dom');
+        }
+        if (checked && bindArg.element.name && ReactDOM !== IS_NATIVE) {
           const inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll(`input[type=radio][name=${ bindArg.element.name }]`);
           var event = document.createEvent('HTMLEvents');
           event.initEvent('change', true, false);
@@ -127,7 +131,10 @@ export default [
       'change': function(bindArg) {
         if (bindArg.element.checked) {
           bindArg.setVmValue(bindArg.element.value);
-          if (bindArg.element.name && ReactDOM) {
+          if (!ReactDOM) {
+            ReactDOM = navigator.project === 'ReactNative' ? IS_NATIVE : require('react-dom');
+          }
+          if (bindArg.element.name && ReactDOM !== IS_NATIVE) {
 
             const inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll(`input[type=radio][name=${ bindArg.element.name }]`);
             var event = document.createEvent('HTMLEvents');
