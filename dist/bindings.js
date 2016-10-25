@@ -3,12 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _reactDom = require('react-dom');
-
-var _reactDom2 = _interopRequireDefault(_reactDom);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var ReactDOM = navigator.project === 'ReactNative' ? null : require('react-dom');
 
 var changeBinding = function changeBinding(eb) {
   return eb.value || eb.check || eb.text || eb.html || eb.focus || eb.hover || eb.toggle || eb.if || eb.visible || eb.unless || eb.hide || eb.enable || eb.disable;
@@ -76,8 +71,8 @@ exports.default = [{
     'change': function change(bindArg) {
       var checked = bindArg.element.checked;
       bindArg.setVmValue(checked);
-      if (checked && bindArg.element.name) {
-        var inputs = _reactDom2.default.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
+      if (checked && bindArg.element.name && ReactDOM) {
+        var inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
         var event = document.createEvent('HTMLEvents');
         event.initEvent('change', true, false);
         Array.prototype.forEach.call(inputs, function (input, i) {
@@ -127,9 +122,9 @@ exports.default = [{
     'change': function change(bindArg) {
       if (bindArg.element.checked) {
         bindArg.setVmValue(bindArg.element.value);
-        if (bindArg.element.name) {
+        if (bindArg.element.name && ReactDOM) {
 
-          var inputs = _reactDom2.default.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
+          var inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
           var event = document.createEvent('HTMLEvents');
           event.initEvent('change', true, false);
           Array.prototype.forEach.call(inputs, function (input, i) {

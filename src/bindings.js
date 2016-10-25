@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom';
+const ReactDOM = navigator.project === 'ReactNative' ? null : require('react-dom');
 
 const changeBinding = function(eb) {
   return eb.value || eb.check || eb.text || eb.html || eb.focus || eb.hover || eb.toggle || eb.if || eb.visible || eb.unless || eb.hide || eb.enable || eb.disable;
@@ -74,7 +74,7 @@ export default [
       'change': function(bindArg) {
         const checked = bindArg.element.checked;
         bindArg.setVmValue(checked);
-        if (checked && bindArg.element.name) {
+        if (checked && bindArg.element.name && ReactDOM) {
           const inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll(`input[type=radio][name=${ bindArg.element.name }]`);
           var event = document.createEvent('HTMLEvents');
           event.initEvent('change', true, false);
@@ -127,7 +127,7 @@ export default [
       'change': function(bindArg) {
         if (bindArg.element.checked) {
           bindArg.setVmValue(bindArg.element.value);
-          if (bindArg.element.name) {
+          if (bindArg.element.name && ReactDOM) {
 
             const inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll(`input[type=radio][name=${ bindArg.element.name }]`);
             var event = document.createEvent('HTMLEvents');

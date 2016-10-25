@@ -26,10 +26,6 @@ var _parseBind2 = require('./parseBind');
 
 var _parseBind3 = _interopRequireDefault(_parseBind2);
 
-var _reactDom = require('react-dom');
-
-var _reactDom2 = _interopRequireDefault(_reactDom);
-
 var _bindings = require('./bindings');
 
 var _bindings2 = _interopRequireDefault(_bindings);
@@ -39,6 +35,8 @@ var _viewmodelOnUrl = require('./viewmodel-onUrl');
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var ReactDOM = navigator.project === 'ReactNative' ? null : require('react-dom');
 
 var savedOnUrl = [];
 
@@ -81,7 +79,7 @@ var ViewModel = function () {
   }, {
     key: 'find',
     value: function find(nameOrPredicate, predicateOrNothing) {
-      var onlyOne = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
+      var onlyOne = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
       var name = _helper2.default.isString(nameOrPredicate) && nameOrPredicate;
       var predicate = _helper2.default.isFunction(predicateOrNothing) && predicateOrNothing || _helper2.default.isFunction(nameOrPredicate) && nameOrPredicate;
@@ -419,7 +417,7 @@ var ViewModel = function () {
     key: 'getVmValueGetter',
     value: function getVmValueGetter(component, repeatObject, repeatIndex, bindValue) {
       return function () {
-        var optBindValue = arguments.length <= 0 || arguments[0] === undefined ? bindValue : arguments[0];
+        var optBindValue = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : bindValue;
 
         return ViewModel.getValue(component, repeatObject, repeatIndex, optBindValue.toString(), component);
       };
@@ -571,7 +569,7 @@ var ViewModel = function () {
   }, {
     key: 'load',
     value: function load(toLoad, container) {
-      var component = arguments.length <= 2 || arguments[2] === undefined ? container : arguments[2];
+      var component = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : container;
 
       var loadObj = function loadObj(obj) {
         for (var key in obj) {
@@ -910,7 +908,7 @@ var ViewModel = function () {
     value: function prepareData(component) {
 
       component.data = function () {
-        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+        var fields = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
 
         var js = {};
         for (var prop in component) {
@@ -932,7 +930,7 @@ var ViewModel = function () {
     value: function prepareValidations(component) {
 
       component.valid = function () {
-        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+        var fields = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
 
         for (var prop in component) {
           if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
@@ -945,7 +943,7 @@ var ViewModel = function () {
       };
 
       component.validMessages = function () {
-        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+        var fields = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
 
         var messages = [];
         for (var prop in component) {
@@ -962,13 +960,13 @@ var ViewModel = function () {
       };
 
       component.invalid = function () {
-        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+        var fields = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
 
         return !component.valid(fields);
       };
 
       component.invalidMessages = function () {
-        var fields = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+        var fields = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
 
         var messages = [];
         for (var prop in component) {
@@ -1359,8 +1357,9 @@ var ViewModel = function () {
   }, {
     key: 'getPathToRoot',
     value: function getPathToRoot(component) {
+      if (!ReactDOM) return '/';
       var difference, i, parentPath, viewmodelPath;
-      return ViewModel.getElementPath(_reactDom2.default.findDOMNode(component));
+      return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
     }
   }, {
     key: 'getPathToParent',

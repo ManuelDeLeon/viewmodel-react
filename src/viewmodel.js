@@ -3,9 +3,9 @@ import H from './helper';
 import ReactiveArray from './reactive-array';
 import Property from './viewmodel-property';
 import parseBind from './parseBind';
-import ReactDOM from 'react-dom';
 import presetBindings from './bindings'
 import { getSaveUrl, getLoadUrl } from './viewmodel-onUrl';
+const ReactDOM = navigator.project === 'ReactNative' ? null : require('react-dom');
 
 let savedOnUrl = [];
 
@@ -1004,6 +1004,7 @@ export default class ViewModel {
   }
 
   static getPathToRoot(component) {
+    if (!ReactDOM) return '/';
     var difference, i, parentPath, viewmodelPath;
     return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
   };
