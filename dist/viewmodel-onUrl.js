@@ -13,28 +13,30 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var getSavedData, getUrl, _parseUri, updateQueryString;
 
-(function (history) {
-  var pushState, replaceState;
-  pushState = history.pushState;
-  replaceState = history.replaceState;
-  if (pushState) {
-    history.pushState = function (state, title, url) {
-      if (typeof history.onstatechange === 'function') {
-        history.onstatechange(state, title, url);
-      }
-      return pushState.apply(history, arguments);
-    };
-    history.replaceState = function (state, title, url) {
-      if (typeof history.onstatechange === 'function') {
-        history.onstatechange(state, title, url);
-      }
-      return replaceState.apply(history, arguments);
-    };
-  } else {
-    history.pushState = function () {};
-    history.replaceState = function () {};
-  }
-})(window.history);
+if (window.history) {
+  (function (history) {
+    var pushState, replaceState;
+    pushState = history.pushState;
+    replaceState = history.replaceState;
+    if (pushState) {
+      history.pushState = function (state, title, url) {
+        if (typeof history.onstatechange === 'function') {
+          history.onstatechange(state, title, url);
+        }
+        return pushState.apply(history, arguments);
+      };
+      history.replaceState = function (state, title, url) {
+        if (typeof history.onstatechange === 'function') {
+          history.onstatechange(state, title, url);
+        }
+        return replaceState.apply(history, arguments);
+      };
+    } else {
+      history.pushState = function () {};
+      history.replaceState = function () {};
+    }
+  })(window.history);
+}
 
 _parseUri = function parseUri(str) {
   var i, m, o, uri;
@@ -139,7 +141,7 @@ var getSaveUrl = function getSaveUrl(vmObject) {
       dataString = JSON.stringify(savedData);
       dataCompressed = _lzstring2.default.compressToEncodedURIComponent(dataString);
       url = updateQueryString("vmdata", dataCompressed, url);
-      if (!c.firstRun && document.URL !== url) {
+      if (!c.firstRun && document.URL !== url && window.history) {
         window.history.pushState(null, null, url);
       }
     }));

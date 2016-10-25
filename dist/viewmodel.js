@@ -36,7 +36,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var ReactDOM = navigator.project === 'ReactNative' ? null : require('react-dom');
+var IS_NATIVE = 'IS_NATIVE';
+var ReactDOM = void 0;
 
 var savedOnUrl = [];
 
@@ -1357,9 +1358,16 @@ var ViewModel = function () {
   }, {
     key: 'getPathToRoot',
     value: function getPathToRoot(component) {
-      if (!ReactDOM) return '/';
-      var difference, i, parentPath, viewmodelPath;
-      return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
+      if (!ReactDOM) {
+        ReactDOM = navigator.project === 'ReactNative' ? IS_NATIVE : require('react-dom');
+      }
+
+      if (ReactDOM === IS_NATIVE) {
+        return '/';
+      } else {
+        var difference, i, parentPath, viewmodelPath;
+        return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
+      }
     }
   }, {
     key: 'getPathToParent',
