@@ -13,7 +13,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var getSavedData, getUrl, _parseUri, updateQueryString;
 
-if (window.history) {
+if (typeof window !== 'undefined' && window.history) {
   (function (history) {
     var pushState, replaceState;
     pushState = history.pushState;
