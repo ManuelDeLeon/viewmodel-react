@@ -1,3 +1,6 @@
+# 1.0.3
+* Guard against window undefined
+
 # 1.0.2
 * Don't use window if it's not defined (fix for SSR)
 
