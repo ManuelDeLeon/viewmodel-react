@@ -120,6 +120,7 @@ getSavedData = function(url) {
 
 var getSaveUrl = function(vmObject){
   return function(viewmodel) {
+    if (typeof window === 'undefined') return;
     const vmHash = vmObject.getComponentPath(viewmodel);
     viewmodel.vmComputations.push(
       vmObject.Tracker.autorun(function(c) {
@@ -143,6 +144,7 @@ var getSaveUrl = function(vmObject){
 
 var getLoadUrl = function(vmObject) {
   return function(viewmodel) {
+    if (typeof window === 'undefined') return;
     var updateFromUrl;
     updateFromUrl = function (state, title, url) {
       var data, savedData, vmHash;
