@@ -214,7 +214,6 @@ export default class ViewModel {
         } else {
           return true;
         }
-        return validSync;
       } else {
         if (validationAsync.value === _value) {
           return validationAsync.result;
@@ -556,9 +555,16 @@ export default class ViewModel {
         } else {
           return undefined;
         }
-
       };
       this.load(this.props);
+
+      const bind = this.props['data-bind'];
+      if (bind) {
+        var bindObject = parseBind(bind);
+        if (bindObject.ref) {
+          this.parent()[bindObject.ref] = this;
+        }
+      }
 
       for(let fun of component.vmCreated){
         fun.call(component)
@@ -572,11 +578,13 @@ export default class ViewModel {
 
   static prepareComponentDidMount(component){
     const old = component.componentDidMount;
-    component.componentDidMount = function() {
+    const componentDidMount = function() {
       component.vmMounted = true;
-      for(let fun of component.vmRendered){
-        fun.call(component)
+
+      for (let fun of component.vmRendered) {
+        setTimeout(() => fun.call(component));
       }
+
       for(let autorun of component.vmAutorun) {
         component.vmComputations.push( ViewModel.Tracker.autorun(function(c) {
           autorun.call(component, c);
@@ -610,9 +618,10 @@ export default class ViewModel {
       }
 
       ViewModel.add(component);
-
       component.vmChanged = false;
-    }
+    };
+
+    component.componentDidMount = componentDidMount;
   }
 
   static prepareComponentWillUnmount(component){
@@ -654,8 +663,8 @@ export default class ViewModel {
         if (component.vmChanged || ( component.vmDependsOnParent && parent.vmChanged )) {
 
           if(parent && !parent.vmChanged && !component.hasOwnProperty('vmUpdateParent')) {
-            for(let ref in parent.refs) {
-              if (parent.refs[ref] === component ){
+            for(let ref in parent) {
+              if (parent[ref] === component ){
                 component.vmUpdateParent = true;
                 break;
               }
@@ -1201,11 +1210,11 @@ ViewModel.properties = {
   share: 1,
   mixin: 1,
   signal: 1,
-  ref: 1,
   load: 1,
   rendered: 1,
   created: 1,
-  destroyed: 1
+  destroyed: 1,
+  ref: 1
 };
 
 // The user can't use these properties
