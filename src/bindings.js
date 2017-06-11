@@ -2,7 +2,7 @@ const IS_NATIVE = 'IS_NATIVE';
 let ReactDOM;
 
 const changeBinding = function(eb) {
-  return eb.value || eb.check || eb.text || eb.html || eb.focus || eb.hover || eb.toggle || eb.if || eb.visible || eb.unless || eb.hide || eb.enable || eb.disable;
+  return eb.value || eb.check || eb.text || eb.html || eb.focus || eb.hover || eb.toggle || eb.if || eb.visible || eb.unless || eb.hide || eb.enable || eb.disable || eb.ref;
 };
 
 
@@ -219,6 +219,12 @@ export default [
       click: function(bindArg) {
         bindArg.setVmValue(!bindArg.getVmValue());
       }
+    }
+  },
+  {
+    name: 'ref',
+    bind: function(bindArg){
+      bindArg.component[bindArg.bindValue] = bindArg.element;
     }
   }
 ]

@@ -259,7 +259,6 @@ var ViewModel = function () {
           } else {
             return true;
           }
-          return validSync;
         } else {
           if (validationAsync.value === _value) {
             return validationAsync.result;
@@ -645,6 +644,14 @@ var ViewModel = function () {
         };
         this.load(this.props);
 
+        var bind = this.props['data-bind'];
+        if (bind) {
+          var bindObject = (0, _parseBind3.default)(bind);
+          if (bindObject.ref) {
+            this.parent()[bindObject.ref] = this;
+          }
+        }
+
         var _iteratorNormalCompletion2 = true;
         var _didIteratorError2 = false;
         var _iteratorError2 = undefined;
@@ -681,17 +688,24 @@ var ViewModel = function () {
     key: 'prepareComponentDidMount',
     value: function prepareComponentDidMount(component) {
       var old = component.componentDidMount;
-      component.componentDidMount = function () {
+      var componentDidMount = function componentDidMount() {
         component.vmMounted = true;
+
         var _iteratorNormalCompletion3 = true;
         var _didIteratorError3 = false;
         var _iteratorError3 = undefined;
 
         try {
-          for (var _iterator3 = component.vmRendered[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+          var _loop = function _loop() {
             var fun = _step3.value;
 
-            fun.call(component);
+            setTimeout(function () {
+              return fun.call(component);
+            });
+          };
+
+          for (var _iterator3 = component.vmRendered[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+            _loop();
           }
         } catch (err) {
           _didIteratorError3 = true;
@@ -713,7 +727,7 @@ var ViewModel = function () {
         var _iteratorError4 = undefined;
 
         try {
-          var _loop = function _loop() {
+          var _loop2 = function _loop2() {
             var autorun = _step4.value;
 
             component.vmComputations.push(ViewModel.Tracker.autorun(function (c) {
@@ -722,7 +736,7 @@ var ViewModel = function () {
           };
 
           for (var _iterator4 = component.vmAutorun[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-            _loop();
+            _loop2();
           }
         } catch (err) {
           _didIteratorError4 = true;
@@ -767,9 +781,10 @@ var ViewModel = function () {
         }
 
         ViewModel.add(component);
-
         component.vmChanged = false;
       };
+
+      component.componentDidMount = componentDidMount;
     }
   }, {
     key: 'prepareComponentWillUnmount',
@@ -783,9 +798,9 @@ var ViewModel = function () {
         try {
 
           for (var _iterator5 = component.vmDestroyed[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-            var fun = _step5.value;
+            var _fun = _step5.value;
 
-            fun.call(component);
+            _fun.call(component);
           }
         } catch (err) {
           _didIteratorError5 = true;
@@ -838,8 +853,8 @@ var ViewModel = function () {
           if (component.vmChanged || component.vmDependsOnParent && parent.vmChanged) {
 
             if (parent && !parent.vmChanged && !component.hasOwnProperty('vmUpdateParent')) {
-              for (var ref in parent.refs) {
-                if (parent.refs[ref] === component) {
+              for (var ref in parent) {
+                if (parent[ref] === component) {
                   component.vmUpdateParent = true;
                   break;
                 }
@@ -1112,11 +1127,11 @@ var ViewModel = function () {
         ViewModel.loadMixinShare(toLoad.mixin, ViewModel.mixins, component, component.vmMixins);
 
         // Whatever is in 'load' is loaded before direct properties
-        component.load(toLoad.load);
+        component.load(toLoad.load
 
         // Load the object into the component
         // (direct properties)
-        ViewModel.load(toLoad, component);
+        );ViewModel.load(toLoad, component);
 
         var hooks = {
           created: 'vmCreated',
@@ -1617,11 +1632,11 @@ ViewModel.properties = {
   share: 1,
   mixin: 1,
   signal: 1,
-  ref: 1,
   load: 1,
   rendered: 1,
   created: 1,
-  destroyed: 1
+  destroyed: 1,
+  ref: 1
 };
 
 // The user can't use these properties
