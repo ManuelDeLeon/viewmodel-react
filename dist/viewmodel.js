@@ -1127,11 +1127,11 @@ var ViewModel = function () {
         ViewModel.loadMixinShare(toLoad.mixin, ViewModel.mixins, component, component.vmMixins);
 
         // Whatever is in 'load' is loaded before direct properties
-        component.load(toLoad.load
+        component.load(toLoad.load);
 
         // Load the object into the component
         // (direct properties)
-        );ViewModel.load(toLoad, component);
+        ViewModel.load(toLoad, component);
 
         var hooks = {
           created: 'vmCreated',

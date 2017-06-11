@@ -1,3 +1,6 @@
+# 2.0.0
+* Added the [ref binding](https://viewmodel.org/#BindingsRef) for referencing elements and components. React's ref/refs will still work but it's on life support and likely to be deprecated by React in the future.
+
 # 1.0.3
 * Guard against window undefined
 
