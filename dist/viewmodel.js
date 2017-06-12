@@ -391,12 +391,12 @@ var ViewModel = function () {
             if (container.vmId && !primitive && !container[name]) {
               container[name] = ViewModel.prop('', viewmodel);
             }
-            if (!primitive && !(container != null && (container[name] != null || _helper2.default.isObject(container)))) {
+            if (!primitive && !(container != null && (container[name] != null || _helper2.default.isObject(container) || _helper2.default.isString(container)))) {
               var errorMsg = "Can't access '" + name + "' of '" + container + "'.";
               console.error(errorMsg);
             } else if (primitive) {
               value = _helper2.default.getPrimitive(name);
-            } else if (!(name in container)) {
+            } else if (!(_helper2.default.isString(container) || name in container)) {
               return undefined;
             } else {
               if (!funPropReserved && _helper2.default.isFunction(container[name])) {
@@ -1127,11 +1127,11 @@ var ViewModel = function () {
         ViewModel.loadMixinShare(toLoad.mixin, ViewModel.mixins, component, component.vmMixins);
 
         // Whatever is in 'load' is loaded before direct properties
-        component.load(toLoad.load);
+        component.load(toLoad.load
 
         // Load the object into the component
         // (direct properties)
-        ViewModel.load(toLoad, component);
+        );ViewModel.load(toLoad, component);
 
         var hooks = {
           created: 'vmCreated',

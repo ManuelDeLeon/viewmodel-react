@@ -344,12 +344,12 @@ export default class ViewModel {
           if (container.vmId && !primitive && !container[name]) {
             container[name] = ViewModel.prop('', viewmodel);
           }
-          if (!primitive && !((container != null) && ((container[name] != null) || H.isObject(container)))) {
+          if (!primitive && !((container != null) && ((container[name] != null) || H.isObject(container) || H.isString(container)))) {
             const errorMsg = "Can't access '" + name + "' of '" + container + "'.";
             console.error(errorMsg);
           } else if (primitive) {
             value = H.getPrimitive(name);
-          } else if (!(name in container)){
+          } else if (!(H.isString(container) || name in container)){
             return undefined;
           } else {
             if (!funPropReserved && H.isFunction(container[name])) {
