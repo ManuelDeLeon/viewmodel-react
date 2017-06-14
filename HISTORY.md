@@ -1,3 +1,6 @@
+# 2.0.2
+* Shortcircuit logical operators.
+
 # 2.0.1
 * Handle references to components and elements better.
 

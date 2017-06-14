@@ -274,8 +274,8 @@ export default class ViewModel {
     bindValue = bindValue.trim();
     const ref = H.firstToken(bindValue), token = ref[0], tokenIndex = ref[1];
     if (~tokenIndex) {
-      const left = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
-      const right = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
+      const left = () => ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
+      const right = () => ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
       value = H.tokens[token.trim()](left, right);
     } else if (bindValue === "this") {
       value = viewmodel;
@@ -390,14 +390,20 @@ export default class ViewModel {
 
   static setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel) {
     var i, newBindValue, newContainer;
-    if (H.dotRegex.test(bindValue)) {
-      i = bindValue.search(H.dotRegex);
-      if (bindValue.charAt(i) !== '.') {
-        i += 1;
+    const ref = H.firstToken(bindValue), token = ref[0], tokenIndex = ref[1];
+    if (H.dotRegex.test(bindValue) || ~tokenIndex) {
+      if (~tokenIndex) {
+        ViewModel.getValue(container, repeatObject, repeatIndex, bindValue, viewmodel);
+      } else {
+        i = bindValue.search(H.dotRegex);
+        if (bindValue.charAt(i) !== '.') {
+          i += 1;
+        }
+        newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
+        newBindValue = bindValue.substring(i + 1);
+        ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel);        
       }
-      newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
-      newBindValue = bindValue.substring(i + 1);
-      ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel);
+
     } else {
       if (H.isFunction(container[bindValue])) {
         container[bindValue](value);
@@ -1262,7 +1268,8 @@ ViewModel.funPropReserved = {
   invalid: 1,
   invalidMessage: 1,
   validating: 1,
-  message: 1
+  message: 1,
+  reset: 1
 };
 
 ViewModel.compiledBindings = {
