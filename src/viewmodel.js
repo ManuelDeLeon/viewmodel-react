@@ -7,7 +7,7 @@ import presetBindings from './bindings'
 import { getSaveUrl, getLoadUrl } from './viewmodel-onUrl';
 const IS_NATIVE = 'IS_NATIVE';
 let ReactDOM;
-
+const pendingShared = [];
 let savedOnUrl = [];
 
 export default class ViewModel {
@@ -85,18 +85,26 @@ export default class ViewModel {
   }
 
   static share(obj) {
-    for (let key in obj) {
-      ViewModel.shared[key] = {}
-      let value = obj[key];
-      for (let prop in value) {
-        let content = value[prop];
-        if (H.isFunction(content) || ViewModel.properties[prop]) {
-          ViewModel.shared[key][prop] = content;
-        } else {
-          ViewModel.shared[key][prop] = ViewModel.prop(content);
+    pendingShared.push(obj);
+      
+  }
+  static loadPendingShared() {
+    if (pendingShared.length === 0) return;
+    for(var obj of pendingShared) {
+      for (let key in obj) {
+        ViewModel.shared[key] = {};
+        let value = obj[key];
+        for (let prop in value) {
+          let content = value[prop];
+          if (H.isFunction(content) || ViewModel.properties[prop]) {
+            ViewModel.shared[key][prop] = content;
+          } else {
+            ViewModel.shared[key][prop] = ViewModel.prop(content);
+          }
         }
       }
     }
+    pendingShared.length = 0;
   }
 
   static prop(initial, component) {
@@ -855,6 +863,7 @@ export default class ViewModel {
       }
 
       // Shared
+      ViewModel.loadPendingShared();
       ViewModel.loadMixinShare( toLoad.share, ViewModel.shared, component, component.vmShares );
 
       // Mixins
