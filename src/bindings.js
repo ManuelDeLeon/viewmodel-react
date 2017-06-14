@@ -163,6 +163,16 @@ export default [
         }
       }
     }
+  }, 
+  {
+    name: 'esc',
+    events: {
+      'keyup': function (bindArg, event) {
+        if (event.which === 27 || event.keyCode === 27) {
+          bindArg.setVmValue(event);
+        }
+      }
+    }
   },
   {
     name: 'change',
