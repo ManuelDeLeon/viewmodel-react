@@ -1,3 +1,6 @@
+# 2.1.0
+* Add `esc` binding
+
 # 2.0.2
 * Shortcircuit logical operators.
 

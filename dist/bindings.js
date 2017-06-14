@@ -158,6 +158,15 @@ exports.default = [{
     }
   }
 }, {
+  name: 'esc',
+  events: {
+    'keyup': function keyup(bindArg, event) {
+      if (event.which === 27 || event.keyCode === 27) {
+        bindArg.setVmValue(event);
+      }
+    }
+  }
+}, {
   name: 'change',
   bind: function bind(bindArg) {
     var bindValue = changeBinding(bindArg.elementBind);
