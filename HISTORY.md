@@ -1,3 +1,6 @@
+# 2.1.1
+* Fix issue with Meteor + shared
+
 # 2.1.0
 * Add `esc` binding
 

@@ -38,7 +38,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var IS_NATIVE = 'IS_NATIVE';
 var ReactDOM = void 0;
-
+var pendingShared = [];
 var savedOnUrl = [];
 
 var ViewModel = function () {
@@ -129,18 +129,49 @@ var ViewModel = function () {
   }, {
     key: 'share',
     value: function share(obj) {
-      for (var key in obj) {
-        ViewModel.shared[key] = {};
-        var value = obj[key];
-        for (var prop in value) {
-          var content = value[prop];
-          if (_helper2.default.isFunction(content) || ViewModel.properties[prop]) {
-            ViewModel.shared[key][prop] = content;
-          } else {
-            ViewModel.shared[key][prop] = ViewModel.prop(content);
+      pendingShared.push(obj);
+    }
+  }, {
+    key: 'loadPendingShared',
+    value: function loadPendingShared() {
+      if (pendingShared.length === 0) return;
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = pendingShared[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var obj = _step.value;
+
+          for (var key in obj) {
+            ViewModel.shared[key] = {};
+            var value = obj[key];
+            for (var prop in value) {
+              var content = value[prop];
+              if (_helper2.default.isFunction(content) || ViewModel.properties[prop]) {
+                ViewModel.shared[key][prop] = content;
+              } else {
+                ViewModel.shared[key][prop] = ViewModel.prop(content);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
           }
         }
       }
+
+      pendingShared.length = 0;
     }
   }, {
     key: 'prop',
@@ -521,13 +552,13 @@ var ViewModel = function () {
         objectStyles = {};
         var itemsString = bindText.substr(1, bindText.length - 2);
         var items = itemsString.split(',');
-        var _iteratorNormalCompletion = true;
-        var _didIteratorError = false;
-        var _iteratorError = undefined;
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
 
         try {
-          for (var _iterator = items[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-            var item = _step.value;
+          for (var _iterator2 = items[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+            var item = _step2.value;
 
             var vmValue = ViewModel.getValue(component, repeatObject, repeatIndex, item);
             var bag = _helper2.default.isString(vmValue) ? ViewModel.parseBind(vmValue) : vmValue;
@@ -537,16 +568,16 @@ var ViewModel = function () {
             }
           }
         } catch (err) {
-          _didIteratorError = true;
-          _iteratorError = err;
+          _didIteratorError2 = true;
+          _iteratorError2 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion && _iterator.return) {
-              _iterator.return();
+            if (!_iteratorNormalCompletion2 && _iterator2.return) {
+              _iterator2.return();
             }
           } finally {
-            if (_didIteratorError) {
-              throw _iteratorError;
+            if (_didIteratorError2) {
+              throw _iteratorError2;
             }
           }
         }
@@ -663,27 +694,27 @@ var ViewModel = function () {
           }
         }
 
-        var _iteratorNormalCompletion2 = true;
-        var _didIteratorError2 = false;
-        var _iteratorError2 = undefined;
+        var _iteratorNormalCompletion3 = true;
+        var _didIteratorError3 = false;
+        var _iteratorError3 = undefined;
 
         try {
-          for (var _iterator2 = component.vmCreated[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-            var fun = _step2.value;
+          for (var _iterator3 = component.vmCreated[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+            var fun = _step3.value;
 
             fun.call(component);
           }
         } catch (err) {
-          _didIteratorError2 = true;
-          _iteratorError2 = err;
+          _didIteratorError3 = true;
+          _iteratorError3 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion2 && _iterator2.return) {
-              _iterator2.return();
+            if (!_iteratorNormalCompletion3 && _iterator3.return) {
+              _iterator3.return();
             }
           } finally {
-            if (_didIteratorError2) {
-              throw _iteratorError2;
+            if (_didIteratorError3) {
+              throw _iteratorError3;
             }
           }
         }
@@ -702,52 +733,21 @@ var ViewModel = function () {
       var componentDidMount = function componentDidMount() {
         component.vmMounted = true;
 
-        var _iteratorNormalCompletion3 = true;
-        var _didIteratorError3 = false;
-        var _iteratorError3 = undefined;
+        var _iteratorNormalCompletion4 = true;
+        var _didIteratorError4 = false;
+        var _iteratorError4 = undefined;
 
         try {
           var _loop = function _loop() {
-            var fun = _step3.value;
+            var fun = _step4.value;
 
             setTimeout(function () {
               return fun.call(component);
             });
           };
 
-          for (var _iterator3 = component.vmRendered[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+          for (var _iterator4 = component.vmRendered[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
             _loop();
-          }
-        } catch (err) {
-          _didIteratorError3 = true;
-          _iteratorError3 = err;
-        } finally {
-          try {
-            if (!_iteratorNormalCompletion3 && _iterator3.return) {
-              _iterator3.return();
-            }
-          } finally {
-            if (_didIteratorError3) {
-              throw _iteratorError3;
-            }
-          }
-        }
-
-        var _iteratorNormalCompletion4 = true;
-        var _didIteratorError4 = false;
-        var _iteratorError4 = undefined;
-
-        try {
-          var _loop2 = function _loop2() {
-            var autorun = _step4.value;
-
-            component.vmComputations.push(ViewModel.Tracker.autorun(function (c) {
-              autorun.call(component, c);
-            }));
-          };
-
-          for (var _iterator4 = component.vmAutorun[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-            _loop2();
           }
         } catch (err) {
           _didIteratorError4 = true;
@@ -760,6 +760,37 @@ var ViewModel = function () {
           } finally {
             if (_didIteratorError4) {
               throw _iteratorError4;
+            }
+          }
+        }
+
+        var _iteratorNormalCompletion5 = true;
+        var _didIteratorError5 = false;
+        var _iteratorError5 = undefined;
+
+        try {
+          var _loop2 = function _loop2() {
+            var autorun = _step5.value;
+
+            component.vmComputations.push(ViewModel.Tracker.autorun(function (c) {
+              autorun.call(component, c);
+            }));
+          };
+
+          for (var _iterator5 = component.vmAutorun[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+            _loop2();
+          }
+        } catch (err) {
+          _didIteratorError5 = true;
+          _iteratorError5 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion5 && _iterator5.return) {
+              _iterator5.return();
+            }
+          } finally {
+            if (_didIteratorError5) {
+              throw _iteratorError5;
             }
           }
         }
@@ -802,28 +833,28 @@ var ViewModel = function () {
     value: function prepareComponentWillUnmount(component) {
       var old = component.componentWillUnmount;
       component.componentWillUnmount = function () {
-        var _iteratorNormalCompletion5 = true;
-        var _didIteratorError5 = false;
-        var _iteratorError5 = undefined;
+        var _iteratorNormalCompletion6 = true;
+        var _didIteratorError6 = false;
+        var _iteratorError6 = undefined;
 
         try {
 
-          for (var _iterator5 = component.vmDestroyed[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-            var _fun = _step5.value;
+          for (var _iterator6 = component.vmDestroyed[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+            var _fun = _step6.value;
 
             _fun.call(component);
           }
         } catch (err) {
-          _didIteratorError5 = true;
-          _iteratorError5 = err;
+          _didIteratorError6 = true;
+          _iteratorError6 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion5 && _iterator5.return) {
-              _iterator5.return();
+            if (!_iteratorNormalCompletion6 && _iterator6.return) {
+              _iterator6.return();
             }
           } finally {
-            if (_didIteratorError5) {
-              throw _iteratorError5;
+            if (_didIteratorError6) {
+              throw _iteratorError6;
             }
           }
         }
@@ -1026,13 +1057,13 @@ var ViewModel = function () {
     value: function loadMixinShare(toLoad, collection, component, bag) {
       if (!toLoad) return;
       if (toLoad instanceof Array) {
-        var _iteratorNormalCompletion6 = true;
-        var _didIteratorError6 = false;
-        var _iteratorError6 = undefined;
+        var _iteratorNormalCompletion7 = true;
+        var _didIteratorError7 = false;
+        var _iteratorError7 = undefined;
 
         try {
-          for (var _iterator6 = toLoad[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-            var element = _step6.value;
+          for (var _iterator7 = toLoad[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+            var element = _step7.value;
 
             if (_helper2.default.isString(element)) {
               component.load(collection[element]);
@@ -1042,16 +1073,16 @@ var ViewModel = function () {
             }
           }
         } catch (err) {
-          _didIteratorError6 = true;
-          _iteratorError6 = err;
+          _didIteratorError7 = true;
+          _iteratorError7 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion6 && _iterator6.return) {
-              _iterator6.return();
+            if (!_iteratorNormalCompletion7 && _iterator7.return) {
+              _iterator7.return();
             }
           } finally {
-            if (_didIteratorError6) {
-              throw _iteratorError6;
+            if (_didIteratorError7) {
+              throw _iteratorError7;
             }
           }
         }
@@ -1063,28 +1094,28 @@ var ViewModel = function () {
           var container = {};
           var mixshare = toLoad[ref];
           if (mixshare instanceof Array) {
-            var _iteratorNormalCompletion7 = true;
-            var _didIteratorError7 = false;
-            var _iteratorError7 = undefined;
+            var _iteratorNormalCompletion8 = true;
+            var _didIteratorError8 = false;
+            var _iteratorError8 = undefined;
 
             try {
-              for (var _iterator7 = mixshare[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-                var item = _step7.value;
+              for (var _iterator8 = mixshare[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                var item = _step8.value;
 
                 ViewModel.load(collection[item], container, component);
                 bag[item] = ref;
               }
             } catch (err) {
-              _didIteratorError7 = true;
-              _iteratorError7 = err;
+              _didIteratorError8 = true;
+              _iteratorError8 = err;
             } finally {
               try {
-                if (!_iteratorNormalCompletion7 && _iterator7.return) {
-                  _iterator7.return();
+                if (!_iteratorNormalCompletion8 && _iterator8.return) {
+                  _iterator8.return();
                 }
               } finally {
-                if (_didIteratorError7) {
-                  throw _iteratorError7;
+                if (_didIteratorError8) {
+                  throw _iteratorError8;
                 }
               }
             }
@@ -1103,13 +1134,13 @@ var ViewModel = function () {
         if (!toLoad) return;
 
         // Signals
-        var _iteratorNormalCompletion8 = true;
-        var _didIteratorError8 = false;
-        var _iteratorError8 = undefined;
+        var _iteratorNormalCompletion9 = true;
+        var _didIteratorError9 = false;
+        var _iteratorError9 = undefined;
 
         try {
-          for (var _iterator8 = ViewModel.signalsToLoad(toLoad.signal, component)[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-            var signal = _step8.value;
+          for (var _iterator9 = ViewModel.signalsToLoad(toLoad.signal, component)[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+            var signal = _step9.value;
 
             component.load(signal);
             component.vmCreated.push(signal.onCreated);
@@ -1118,20 +1149,21 @@ var ViewModel = function () {
 
           // Shared
         } catch (err) {
-          _didIteratorError8 = true;
-          _iteratorError8 = err;
+          _didIteratorError9 = true;
+          _iteratorError9 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion8 && _iterator8.return) {
-              _iterator8.return();
+            if (!_iteratorNormalCompletion9 && _iterator9.return) {
+              _iterator9.return();
             }
           } finally {
-            if (_didIteratorError8) {
-              throw _iteratorError8;
+            if (_didIteratorError9) {
+              throw _iteratorError9;
             }
           }
         }
 
+        ViewModel.loadPendingShared();
         ViewModel.loadMixinShare(toLoad.share, ViewModel.shared, component, component.vmShares);
 
         // Mixins
@@ -1155,27 +1187,27 @@ var ViewModel = function () {
           if (!toLoad[hook]) continue;
           var vmProp = hooks[hook];
           if (toLoad[hook] instanceof Array) {
-            var _iteratorNormalCompletion9 = true;
-            var _didIteratorError9 = false;
-            var _iteratorError9 = undefined;
+            var _iteratorNormalCompletion10 = true;
+            var _didIteratorError10 = false;
+            var _iteratorError10 = undefined;
 
             try {
-              for (var _iterator9 = toLoad[hook][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-                var item = _step9.value;
+              for (var _iterator10 = toLoad[hook][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+                var item = _step10.value;
 
                 component[vmProp].push(item);
               }
             } catch (err) {
-              _didIteratorError9 = true;
-              _iteratorError9 = err;
+              _didIteratorError10 = true;
+              _iteratorError10 = err;
             } finally {
               try {
-                if (!_iteratorNormalCompletion9 && _iterator9.return) {
-                  _iterator9.return();
+                if (!_iteratorNormalCompletion10 && _iterator10.return) {
+                  _iterator10.return();
                 }
               } finally {
-                if (_didIteratorError9) {
-                  throw _iteratorError9;
+                if (_didIteratorError10) {
+                  throw _iteratorError10;
                 }
               }
             }
@@ -1217,27 +1249,27 @@ var ViewModel = function () {
       };
 
       ViewModel.prepareLoad(component);
-      var _iteratorNormalCompletion10 = true;
-      var _didIteratorError10 = false;
-      var _iteratorError10 = undefined;
+      var _iteratorNormalCompletion11 = true;
+      var _didIteratorError11 = false;
+      var _iteratorError11 = undefined;
 
       try {
-        for (var _iterator10 = ViewModel.globals[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-          var global = _step10.value;
+        for (var _iterator11 = ViewModel.globals[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+          var global = _step11.value;
 
           component.load(global);
         }
       } catch (err) {
-        _didIteratorError10 = true;
-        _iteratorError10 = err;
+        _didIteratorError11 = true;
+        _iteratorError11 = err;
       } finally {
         try {
-          if (!_iteratorNormalCompletion10 && _iterator10.return) {
-            _iterator10.return();
+          if (!_iteratorNormalCompletion11 && _iterator11.return) {
+            _iterator11.return();
           }
         } finally {
-          if (_didIteratorError10) {
-            throw _iteratorError10;
+          if (_didIteratorError11) {
+            throw _iteratorError11;
           }
         }
       }
@@ -1280,27 +1312,27 @@ var ViewModel = function () {
           if (ViewModel.compiledBindings[bindName]) continue;
           var bindValue = bindObject[bindName];
           if (~bindName.indexOf(' ')) {
-            var _iteratorNormalCompletion11 = true;
-            var _didIteratorError11 = false;
-            var _iteratorError11 = undefined;
+            var _iteratorNormalCompletion12 = true;
+            var _didIteratorError12 = false;
+            var _iteratorError12 = undefined;
 
             try {
-              for (var _iterator11 = bindName.split(' ')[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-                var bindNameSingle = _step11.value;
+              for (var _iterator12 = bindName.split(' ')[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+                var bindNameSingle = _step12.value;
 
                 ViewModel.bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindNameSingle, bindId);
               }
             } catch (err) {
-              _didIteratorError11 = true;
-              _iteratorError11 = err;
+              _didIteratorError12 = true;
+              _iteratorError12 = err;
             } finally {
               try {
-                if (!_iteratorNormalCompletion11 && _iterator11.return) {
-                  _iterator11.return();
+                if (!_iteratorNormalCompletion12 && _iterator12.return) {
+                  _iterator12.return();
                 }
               } finally {
-                if (_didIteratorError11) {
-                  throw _iteratorError11;
+                if (_didIteratorError12) {
+                  throw _iteratorError12;
                 }
               }
             }
@@ -1338,27 +1370,27 @@ var ViewModel = function () {
         for (var eventName in binding.events) {
           var eventFunc = binding.events[eventName];
           if (~eventName.indexOf(' ')) {
-            var _iteratorNormalCompletion12 = true;
-            var _didIteratorError12 = false;
-            var _iteratorError12 = undefined;
+            var _iteratorNormalCompletion13 = true;
+            var _didIteratorError13 = false;
+            var _iteratorError13 = undefined;
 
             try {
-              for (var _iterator12 = eventName.split(' ')[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
-                var event = _step12.value;
+              for (var _iterator13 = eventName.split(' ')[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
+                var event = _step13.value;
 
                 func(event, eventFunc);
               }
             } catch (err) {
-              _didIteratorError12 = true;
-              _iteratorError12 = err;
+              _didIteratorError13 = true;
+              _iteratorError13 = err;
             } finally {
               try {
-                if (!_iteratorNormalCompletion12 && _iterator12.return) {
-                  _iterator12.return();
+                if (!_iteratorNormalCompletion13 && _iterator13.return) {
+                  _iterator13.return();
                 }
               } finally {
-                if (_didIteratorError12) {
-                  throw _iteratorError12;
+                if (_didIteratorError13) {
+                  throw _iteratorError13;
                 }
               }
             }
@@ -1564,49 +1596,49 @@ var ViewModel = function () {
     value: function signalsToLoad(containerName, container) {
       if (containerName instanceof Array) {
         var signals = [];
-        var _iteratorNormalCompletion13 = true;
-        var _didIteratorError13 = false;
-        var _iteratorError13 = undefined;
+        var _iteratorNormalCompletion14 = true;
+        var _didIteratorError14 = false;
+        var _iteratorError14 = undefined;
 
         try {
-          for (var _iterator13 = containerName[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
-            var name = _step13.value;
-            var _iteratorNormalCompletion14 = true;
-            var _didIteratorError14 = false;
-            var _iteratorError14 = undefined;
+          for (var _iterator14 = containerName[Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
+            var name = _step14.value;
+            var _iteratorNormalCompletion15 = true;
+            var _didIteratorError15 = false;
+            var _iteratorError15 = undefined;
 
             try {
-              for (var _iterator14 = ViewModel.signalContainer(name, container)[Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
-                var signal = _step14.value;
+              for (var _iterator15 = ViewModel.signalContainer(name, container)[Symbol.iterator](), _step15; !(_iteratorNormalCompletion15 = (_step15 = _iterator15.next()).done); _iteratorNormalCompletion15 = true) {
+                var signal = _step15.value;
 
                 signals.push(signal);
               }
             } catch (err) {
-              _didIteratorError14 = true;
-              _iteratorError14 = err;
+              _didIteratorError15 = true;
+              _iteratorError15 = err;
             } finally {
               try {
-                if (!_iteratorNormalCompletion14 && _iterator14.return) {
-                  _iterator14.return();
+                if (!_iteratorNormalCompletion15 && _iterator15.return) {
+                  _iterator15.return();
                 }
               } finally {
-                if (_didIteratorError14) {
-                  throw _iteratorError14;
+                if (_didIteratorError15) {
+                  throw _iteratorError15;
                 }
               }
             }
           }
         } catch (err) {
-          _didIteratorError13 = true;
-          _iteratorError13 = err;
+          _didIteratorError14 = true;
+          _iteratorError14 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion13 && _iterator13.return) {
-              _iterator13.return();
+            if (!_iteratorNormalCompletion14 && _iterator14.return) {
+              _iterator14.return();
             }
           } finally {
-            if (_didIteratorError13) {
-              throw _iteratorError13;
+            if (_didIteratorError14) {
+              throw _iteratorError14;
             }
           }
         }
@@ -1726,27 +1758,27 @@ ViewModel.Property = _viewmodelProperty2.default;
 ViewModel.saveUrl = (0, _viewmodelOnUrl.getSaveUrl)(ViewModel);
 ViewModel.loadUrl = (0, _viewmodelOnUrl.getLoadUrl)(ViewModel);
 
-var _iteratorNormalCompletion15 = true;
-var _didIteratorError15 = false;
-var _iteratorError15 = undefined;
+var _iteratorNormalCompletion16 = true;
+var _didIteratorError16 = false;
+var _iteratorError16 = undefined;
 
 try {
-  for (var _iterator15 = _bindings2.default[Symbol.iterator](), _step15; !(_iteratorNormalCompletion15 = (_step15 = _iterator15.next()).done); _iteratorNormalCompletion15 = true) {
-    var binding = _step15.value;
+  for (var _iterator16 = _bindings2.default[Symbol.iterator](), _step16; !(_iteratorNormalCompletion16 = (_step16 = _iterator16.next()).done); _iteratorNormalCompletion16 = true) {
+    var binding = _step16.value;
 
     ViewModel.addBinding(binding);
   }
 } catch (err) {
-  _didIteratorError15 = true;
-  _iteratorError15 = err;
+  _didIteratorError16 = true;
+  _iteratorError16 = err;
 } finally {
   try {
-    if (!_iteratorNormalCompletion15 && _iterator15.return) {
-      _iterator15.return();
+    if (!_iteratorNormalCompletion16 && _iterator16.return) {
+      _iterator16.return();
     }
   } finally {
-    if (_didIteratorError15) {
-      throw _iteratorError15;
+    if (_didIteratorError16) {
+      throw _iteratorError16;
     }
   }
 }
