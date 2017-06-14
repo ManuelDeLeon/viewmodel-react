@@ -15,46 +15,46 @@ var _tokens = {
     return Math.pow(a, b);
   },
   '*': function _(a, b) {
-    return a * b;
+    return a() * b();
   },
   '/': function _(a, b) {
-    return a / b;
+    return a() / b();
   },
   '%': function _(a, b) {
-    return a % b;
+    return a() % b();
   },
   '+': function _(a, b) {
-    return a + b;
+    return a() + b();
   },
   '-': function _(a, b) {
-    return a - b;
+    return a() - b();
   },
   '<': function _(a, b) {
-    return a < b;
+    return a() < b();
   },
   '<=': function _(a, b) {
-    return a <= b;
+    return a() <= b();
   },
   '>': function _(a, b) {
-    return a > b;
+    return a() > b();
   },
   '>=': function _(a, b) {
-    return a >= b;
+    return a() >= b();
   },
   '==': function _(a, b) {
-    return a == b;
+    return a() == b();
   },
   '!==': function _(a, b) {
-    return a !== b;
+    return a() !== b();
   },
   '===': function _(a, b) {
-    return a === b;
+    return a() === b();
   },
   '&&': function _(a, b) {
-    return a && b;
+    return a() && b();
   },
   '||': function _(a, b) {
-    return a || b;
+    return a() || b();
   }
 };
 

@@ -321,8 +321,12 @@ var ViewModel = function () {
           token = ref[0],
           tokenIndex = ref[1];
       if (~tokenIndex) {
-        var left = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
-        var right = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
+        var left = function left() {
+          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
+        };
+        var right = function right() {
+          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
+        };
         value = _helper2.default.tokens[token.trim()](left, right);
       } else if (bindValue === "this") {
         value = viewmodel;
@@ -442,14 +446,21 @@ var ViewModel = function () {
     key: 'setValueFull',
     value: function setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel) {
       var i, newBindValue, newContainer;
-      if (_helper2.default.dotRegex.test(bindValue)) {
-        i = bindValue.search(_helper2.default.dotRegex);
-        if (bindValue.charAt(i) !== '.') {
-          i += 1;
+      var ref = _helper2.default.firstToken(bindValue),
+          token = ref[0],
+          tokenIndex = ref[1];
+      if (_helper2.default.dotRegex.test(bindValue) || ~tokenIndex) {
+        if (~tokenIndex) {
+          ViewModel.getValue(container, repeatObject, repeatIndex, bindValue, viewmodel);
+        } else {
+          i = bindValue.search(_helper2.default.dotRegex);
+          if (bindValue.charAt(i) !== '.') {
+            i += 1;
+          }
+          newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
+          newBindValue = bindValue.substring(i + 1);
+          ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel);
         }
-        newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
-        newBindValue = bindValue.substring(i + 1);
-        ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel);
       } else {
         if (_helper2.default.isFunction(container[bindValue])) {
           container[bindValue](value);
@@ -1684,7 +1695,8 @@ ViewModel.funPropReserved = {
   invalid: 1,
   invalidMessage: 1,
   validating: 1,
-  message: 1
+  message: 1,
+  reset: 1
 };
 
 ViewModel.compiledBindings = {
