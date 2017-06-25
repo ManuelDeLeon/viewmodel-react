@@ -33,9 +33,9 @@ exports.default = [{
       var newVal = bindArg.element.value;
       var vmVal = bindArg.getVmValue();
       vmVal = vmVal == null ? '' : vmVal.toString();
-      if (newVal !== vmVal || bindArg.elementBind.throttle && (!bindArg.viewmodel[bindArg.bindValue].hasOwnProperty('nextVal') || newVal !== bindArg.viewmodel[bindArg.bindValue].nextVal)) {
+      if (newVal !== vmVal || bindArg.elementBind.throttle && (!bindArg.component[bindArg.bindValue].hasOwnProperty('nextVal') || newVal !== bindArg.component[bindArg.bindValue].nextVal)) {
         if (bindArg.elementBind.throttle) {
-          bindArg.viewmodel[bindArg.bindValue].nextVal = newVal;
+          bindArg.component[bindArg.bindValue].nextVal = newVal;
         }
         bindArg.setVmValue(newVal);
       }
