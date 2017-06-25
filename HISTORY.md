@@ -1,3 +1,6 @@
+# 2.1.2
+* Fix throttle binding
+
 # 2.1.1
 * Fix issue with Meteor + shared
 
