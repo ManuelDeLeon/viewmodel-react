@@ -353,8 +353,6 @@ var ViewModel = function () {
   }, {
     key: 'getValue',
     value: function getValue(container, repeatObject, repeatIndex, bindValue, viewmodel, funPropReserved) {
-      var prevContainer = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : {};
-
       var value = void 0;
       if (arguments.length < 5) viewmodel = container;
       bindValue = bindValue.trim();
@@ -362,16 +360,11 @@ var ViewModel = function () {
           token = ref[0],
           tokenIndex = ref[1];
       if (~tokenIndex) {
-        var thisContainer = {
-          container: container,
-          viewmodel: viewmodel,
-          prevContainer: prevContainer
-        };
         var left = function left() {
-          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel, prevContainer);
+          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
         };
         var right = function right() {
-          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel, prevContainer);
+          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
         };
         value = _helper2.default.tokens[token.trim()](left, right);
       } else if (bindValue === "this") {
@@ -395,15 +388,10 @@ var ViewModel = function () {
         var parenIndexEnd = _helper2.default.getMatchingParenIndex(bindValue, parenIndexStart);
         var breakOnFirstDot = ~dotIndex && (!~parenIndexStart || dotIndex < parenIndexStart || dotIndex === parenIndexEnd + 1);
         if (breakOnFirstDot) {
-          var _thisContainer = {
-            container: container,
-            viewmodel: viewmodel,
-            prevContainer: prevContainer
-          };
           var newBindValue = bindValue.substring(dotIndex + 1);
           var newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
           var newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
-          value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel, undefined, _thisContainer);
+          value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel);
         } else {
           if (container == null) {
             value = undefined;
@@ -496,6 +484,8 @@ var ViewModel = function () {
   }, {
     key: 'setValueFull',
     value: function setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel) {
+      var prevContainer = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : {};
+
       var i, newBindValue, newContainer;
       var ref = _helper2.default.firstToken(bindValue),
           token = ref[0],
@@ -510,13 +500,26 @@ var ViewModel = function () {
           }
           newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
           newBindValue = bindValue.substring(i + 1);
-          ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel);
+          var thisContainer = {
+            container: container,
+            prevContainer: prevContainer
+          };
+          ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel, thisContainer);
         }
       } else {
         if (_helper2.default.isFunction(container[bindValue])) {
           container[bindValue](value);
         } else {
           container[bindValue] = value;
+          var cont = prevContainer;
+          while (cont && cont.container) {
+            if (cont.container.vmId) {
+              cont.container.vmChange();
+              break;
+            } else {
+              cont = cont.prevContainer;
+            }
+          }
         }
       }
     }

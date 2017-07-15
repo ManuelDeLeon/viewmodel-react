@@ -404,7 +404,7 @@ export default class ViewModel {
     }
   }
 
-  static setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel) {
+  static setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel, prevContainer = {}) {
     var i, newBindValue, newContainer;
     const ref = H.firstToken(bindValue), token = ref[0], tokenIndex = ref[1];
     if (H.dotRegex.test(bindValue) || ~tokenIndex) {
@@ -417,7 +417,11 @@ export default class ViewModel {
         }
         newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
         newBindValue = bindValue.substring(i + 1);
-        ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel);        
+        const thisContainer = {
+          container,
+          prevContainer
+        }
+        ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel, thisContainer);        
       }
 
     } else {
@@ -425,6 +429,15 @@ export default class ViewModel {
         container[bindValue](value);
       } else {
         container[bindValue] = value;
+        let cont = prevContainer;
+        while(cont && cont.container) {
+          if (cont.container.vmId) {
+            cont.container.vmChange();
+            break;
+          } else {
+            cont = cont.prevContainer;
+          }
+        }
       }
     }
   };
