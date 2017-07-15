@@ -1,3 +1,6 @@
+# 2.2.0
+* Add validating and validatingMessage to properties. A component will be invalid if it has a pending async validation. The validation message will be added to the invalid messages collection if it's pending.
+
 # 2.1.2
 * Fix throttle binding
 
