@@ -61,6 +61,7 @@ export default class Property {
     this.defaultValue = undefined;
     this.validMessageValue = "";
     this.invalidMessageValue = "";
+    this.validatingMessageValue = "";
     this.valueType = ValueTypes.any;
 
   }
@@ -206,6 +207,10 @@ export default class Property {
   }
   invalidMessage(message) {
     this.invalidMessageValue = message;
+    return this;
+  }
+  validatingMessage(message) {
+    this.validatingMessageValue = message;
     return this;
   }
 

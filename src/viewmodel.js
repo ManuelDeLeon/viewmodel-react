@@ -213,6 +213,7 @@ export default class ViewModel {
 
     funProp.valid = function (noAsync) {
       dependency.depend();
+      if (noAsync && funProp.validating()) return false;
       const validSync = validator.verify(_value, component);
       if (!validSync || noAsync || !hasAsync) {
         if (!validSync) {
@@ -227,6 +228,7 @@ export default class ViewModel {
           return validationAsync.result;
         } else {
           validator.verifyAsync(_value, getDone(_value), component);
+          return false;
         }
       }
     };
@@ -243,6 +245,10 @@ export default class ViewModel {
       return validator.invalidMessageValue;
     };
 
+    funProp.validatingMessage = function () {
+      return validator.validatingMessageValue;
+    };
+
     funProp.validating = function () {
       if (!hasAsync) {
         return false;
@@ -255,9 +261,11 @@ export default class ViewModel {
       if (this.valid(true)) {
         return validator.validMessageValue;
       } else {
-        return validator.invalidMessageValue;
+        return funProp.validating() && validator.validatingMessageValue || validator.invalidMessageValue;
       }
     };
+
+    funProp.validator = validator;
 
     return funProp;
   };
@@ -777,7 +785,7 @@ export default class ViewModel {
       for(let prop in component){
         if(component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
           if(component[prop].valid(true)){
-            let message = component[prop].message();
+            let message = component[prop].validator.validMessageValue;
             if (message) {
               messages.push(message);
             }
@@ -796,7 +804,7 @@ export default class ViewModel {
       for(let prop in component){
         if(component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
           if(!component[prop].valid(true)){
-            let message = component[prop].message();
+            let message = component[prop].validating() && component[prop].validator.validatingMessageValue || component[prop].validator.invalidMessageValue;
             if (message) {
               messages.push(message);
             }
@@ -1276,7 +1284,9 @@ ViewModel.funPropReserved = {
   validMessage: 1,
   invalid: 1,
   invalidMessage: 1,
+  validatingMessage: 1,
   validating: 1,
+  validator: 1,
   message: 1,
   reset: 1
 };

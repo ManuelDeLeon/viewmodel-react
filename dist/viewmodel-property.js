@@ -74,6 +74,7 @@ var Property = function () {
     this.defaultValue = undefined;
     this.validMessageValue = "";
     this.invalidMessageValue = "";
+    this.validatingMessageValue = "";
     this.valueType = ValueTypes.any;
   }
 
@@ -395,6 +396,12 @@ var Property = function () {
     key: "invalidMessage",
     value: function invalidMessage(message) {
       this.invalidMessageValue = message;
+      return this;
+    }
+  }, {
+    key: "validatingMessage",
+    value: function validatingMessage(message) {
+      this.validatingMessageValue = message;
       return this;
     }
   }, {

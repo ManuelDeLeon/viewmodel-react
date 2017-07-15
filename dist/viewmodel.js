@@ -281,6 +281,7 @@ var ViewModel = function () {
 
       funProp.valid = function (noAsync) {
         dependency.depend();
+        if (noAsync && funProp.validating()) return false;
         var validSync = validator.verify(_value, component);
         if (!validSync || noAsync || !hasAsync) {
           if (!validSync) {
@@ -295,6 +296,7 @@ var ViewModel = function () {
             return validationAsync.result;
           } else {
             validator.verifyAsync(_value, getDone(_value), component);
+            return false;
           }
         }
       };
@@ -311,6 +313,10 @@ var ViewModel = function () {
         return validator.invalidMessageValue;
       };
 
+      funProp.validatingMessage = function () {
+        return validator.validatingMessageValue;
+      };
+
       funProp.validating = function () {
         if (!hasAsync) {
           return false;
@@ -323,9 +329,11 @@ var ViewModel = function () {
         if (this.valid(true)) {
           return validator.validMessageValue;
         } else {
-          return validator.invalidMessageValue;
+          return funProp.validating() && validator.validatingMessageValue || validator.invalidMessageValue;
         }
       };
+
+      funProp.validator = validator;
 
       return funProp;
     }
@@ -345,6 +353,8 @@ var ViewModel = function () {
   }, {
     key: 'getValue',
     value: function getValue(container, repeatObject, repeatIndex, bindValue, viewmodel, funPropReserved) {
+      var prevContainer = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : {};
+
       var value = void 0;
       if (arguments.length < 5) viewmodel = container;
       bindValue = bindValue.trim();
@@ -352,11 +362,16 @@ var ViewModel = function () {
           token = ref[0],
           tokenIndex = ref[1];
       if (~tokenIndex) {
+        var thisContainer = {
+          container: container,
+          viewmodel: viewmodel,
+          prevContainer: prevContainer
+        };
         var left = function left() {
-          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
+          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel, prevContainer);
         };
         var right = function right() {
-          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
+          return ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel, prevContainer);
         };
         value = _helper2.default.tokens[token.trim()](left, right);
       } else if (bindValue === "this") {
@@ -380,10 +395,15 @@ var ViewModel = function () {
         var parenIndexEnd = _helper2.default.getMatchingParenIndex(bindValue, parenIndexStart);
         var breakOnFirstDot = ~dotIndex && (!~parenIndexStart || dotIndex < parenIndexStart || dotIndex === parenIndexEnd + 1);
         if (breakOnFirstDot) {
+          var _thisContainer = {
+            container: container,
+            viewmodel: viewmodel,
+            prevContainer: prevContainer
+          };
           var newBindValue = bindValue.substring(dotIndex + 1);
           var newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
           var newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
-          value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel);
+          value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel, undefined, _thisContainer);
         } else {
           if (container == null) {
             value = undefined;
@@ -1007,7 +1027,7 @@ var ViewModel = function () {
         for (var prop in component) {
           if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
             if (component[prop].valid(true)) {
-              var message = component[prop].message();
+              var message = component[prop].validator.validMessageValue;
               if (message) {
                 messages.push(message);
               }
@@ -1030,7 +1050,7 @@ var ViewModel = function () {
         for (var prop in component) {
           if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
             if (!component[prop].valid(true)) {
-              var message = component[prop].message();
+              var message = component[prop].validating() && component[prop].validator.validatingMessageValue || component[prop].validator.invalidMessageValue;
               if (message) {
                 messages.push(message);
               }
@@ -1170,11 +1190,11 @@ var ViewModel = function () {
         ViewModel.loadMixinShare(toLoad.mixin, ViewModel.mixins, component, component.vmMixins);
 
         // Whatever is in 'load' is loaded before direct properties
-        component.load(toLoad.load);
+        component.load(toLoad.load
 
         // Load the object into the component
         // (direct properties)
-        ViewModel.load(toLoad, component);
+        );ViewModel.load(toLoad, component);
 
         var hooks = {
           created: 'vmCreated',
@@ -1726,7 +1746,9 @@ ViewModel.funPropReserved = {
   validMessage: 1,
   invalid: 1,
   invalidMessage: 1,
+  validatingMessage: 1,
   validating: 1,
+  validator: 1,
   message: 1,
   reset: 1
 };
