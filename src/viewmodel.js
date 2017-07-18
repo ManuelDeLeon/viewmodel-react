@@ -544,7 +544,7 @@ export default class ViewModel {
       }
     };
     if (toLoad instanceof Array) {
-      for (i = 0, len = toLoad.length; i < len; i++) {
+      for (let i = 0, len = toLoad.length; i < len; i++) {
         loadObj(toLoad[i]);
       }
     } else {
@@ -952,7 +952,7 @@ export default class ViewModel {
       component.load(global);
     }
     component.load(initial);
-
+    component.child = (filter) => component.children(filter)[0];
     ViewModel.prepareChildren(component);
     ViewModel.prepareMethodsAndProperties(component, initial);
     ViewModel.prepareComponentWillMount(component);

@@ -404,7 +404,7 @@ var ViewModel = function () {
               var second = parsed[name];
               if (second.length > 2) {
                 var ref1 = second.substr(1, second.length - 2).split(',');
-                for (var j = 0, _len = ref1.length; j < _len; j++) {
+                for (var j = 0, len = ref1.length; j < len; j++) {
                   var arg = ref1[j].trim();
                   var newArg = void 0;
                   if (arg === "this") {
@@ -654,7 +654,7 @@ var ViewModel = function () {
         }
       };
       if (toLoad instanceof Array) {
-        for (i = 0, len = toLoad.length; i < len; i++) {
+        for (var i = 0, len = toLoad.length; i < len; i++) {
           loadObj(toLoad[i]);
         }
       } else {
@@ -1298,7 +1298,9 @@ var ViewModel = function () {
       }
 
       component.load(initial);
-
+      component.child = function (filter) {
+        return component.children(filter)[0];
+      };
       ViewModel.prepareChildren(component);
       ViewModel.prepareMethodsAndProperties(component, initial);
       ViewModel.prepareComponentWillMount(component);
@@ -1516,7 +1518,7 @@ var ViewModel = function () {
       var getDelayedSetter = function getDelayedSetter(bindArg, setter) {
         if (bindArg.elementBind.throttle) {
           return function () {
-            for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+            for (var _len = arguments.length, args = Array(_len), _key2 = 0; _key2 < _len; _key2++) {
               args[_key2] = arguments[_key2];
             }
 
