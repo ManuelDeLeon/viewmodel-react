@@ -1,3 +1,6 @@
+# 2.3.0
+* Add component.child shortcut
+
 # 2.2.1
 * Reactivity now works with nested objects in properties.
 
