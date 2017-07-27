@@ -1,9 +1,9 @@
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var IS_NATIVE = 'IS_NATIVE';
+var IS_NATIVE = "IS_NATIVE";
 var ReactDOM = void 0;
 
 var changeBinding = function changeBinding(eb) {
@@ -11,7 +11,7 @@ var changeBinding = function changeBinding(eb) {
 };
 
 exports.default = [{
-  name: 'default',
+  name: "default",
   bind: function bind(bindArg) {
     if (bindArg.bindName in bindArg.element && !(bindArg.element[bindArg.bindName] instanceof Function)) {
       // It's an attribute or a component so don't add it as an event
@@ -27,13 +27,13 @@ exports.default = [{
     });
   }
 }, {
-  name: 'value',
+  name: "value",
   events: {
-    'input change': function inputChange(bindArg) {
+    "input change": function inputChange(bindArg) {
       var newVal = bindArg.element.value;
       var vmVal = bindArg.getVmValue();
-      vmVal = vmVal == null ? '' : vmVal.toString();
-      if (newVal !== vmVal || bindArg.elementBind.throttle && (!bindArg.component[bindArg.bindValue].hasOwnProperty('nextVal') || newVal !== bindArg.component[bindArg.bindValue].nextVal)) {
+      vmVal = vmVal == null ? "" : vmVal.toString();
+      if (newVal !== vmVal || bindArg.elementBind.throttle && (!bindArg.component[bindArg.bindValue].hasOwnProperty("nextVal") || newVal !== bindArg.component[bindArg.bindValue].nextVal)) {
         if (bindArg.elementBind.throttle) {
           bindArg.component[bindArg.bindValue].nextVal = newVal;
         }
@@ -43,18 +43,18 @@ exports.default = [{
   },
   autorun: function autorun(bindArg) {
     var newVal = bindArg.getVmValue();
-    newVal = newVal == null ? '' : newVal.toString();
+    newVal = newVal == null ? "" : newVal.toString();
     if (newVal !== bindArg.element.value) {
       bindArg.element.value = newVal;
     }
-    var event = document.createEvent('HTMLEvents');
-    event.initEvent('change', true, false);
+    var event = document.createEvent("HTMLEvents");
+    event.initEvent("change", true, false);
     bindArg.element.dispatchEvent(event);
   }
 }, {
-  name: 'check',
+  name: "check",
   events: {
-    'change': function change(bindArg) {
+    change: function change(bindArg) {
       bindArg.setVmValue(bindArg.element.checked);
     }
   },
@@ -66,19 +66,19 @@ exports.default = [{
     }
   }
 }, {
-  name: 'check',
-  selector: 'input[type=radio]',
+  name: "check",
+  selector: "input[type=radio]",
   events: {
-    'change': function change(bindArg) {
+    change: function change(bindArg) {
       var checked = bindArg.element.checked;
       bindArg.setVmValue(checked);
       if (!ReactDOM) {
-        ReactDOM = navigator.project === 'ReactNative' ? IS_NATIVE : require('react-dom');
+        ReactDOM = navigator.project === "ReactNative" ? IS_NATIVE : require("react-dom");
       }
       if (checked && bindArg.element.name && ReactDOM !== IS_NATIVE) {
-        var inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
-        var event = document.createEvent('HTMLEvents');
-        event.initEvent('change', true, false);
+        var inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll("input[type=radio][name=" + bindArg.element.name + "]");
+        var event = document.createEvent("HTMLEvents");
+        event.initEvent("change", true, false);
         Array.prototype.forEach.call(inputs, function (input, i) {
           if (input !== bindArg.element) {
             input.dispatchEvent(event);
@@ -95,10 +95,10 @@ exports.default = [{
     }
   }
 }, {
-  name: 'group',
-  selector: 'input[type=checkbox]',
+  name: "group",
+  selector: "input[type=checkbox]",
   events: {
-    'change': function change(bindArg) {
+    change: function change(bindArg) {
       var vmValue = bindArg.getVmValue();
       var elementValue = bindArg.element.value;
       if (bindArg.element.checked) {
@@ -120,20 +120,19 @@ exports.default = [{
     }
   }
 }, {
-  name: 'group',
-  selector: 'input[type=radio]',
+  name: "group",
+  selector: "input[type=radio]",
   events: {
-    'change': function change(bindArg) {
+    change: function change(bindArg) {
       if (bindArg.element.checked) {
         bindArg.setVmValue(bindArg.element.value);
         if (!ReactDOM) {
-          ReactDOM = navigator.project === 'ReactNative' ? IS_NATIVE : require('react-dom');
+          ReactDOM = navigator.project === "ReactNative" ? IS_NATIVE : require("react-dom");
         }
         if (bindArg.element.name && ReactDOM !== IS_NATIVE) {
-
-          var inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll('input[type=radio][name=' + bindArg.element.name + ']');
-          var event = document.createEvent('HTMLEvents');
-          event.initEvent('change', true, false);
+          var inputs = ReactDOM.findDOMNode(bindArg.component).querySelectorAll("input[type=radio][name=" + bindArg.element.name + "]");
+          var event = document.createEvent("HTMLEvents");
+          event.initEvent("change", true, false);
           Array.prototype.forEach.call(inputs, function (input, i) {
             if (input !== bindArg.element) {
               input.dispatchEvent(event);
@@ -149,25 +148,25 @@ exports.default = [{
     return bindArg.element.checked = vmValue === elementValue;
   }
 }, {
-  name: 'enter',
+  name: "enter",
   events: {
-    'keyup': function keyup(bindArg, event) {
+    keyup: function keyup(bindArg, event) {
       if (event.which === 13 || event.keyCode === 13) {
         bindArg.setVmValue(event);
       }
     }
   }
 }, {
-  name: 'esc',
+  name: "esc",
   events: {
-    'keyup': function keyup(bindArg, event) {
+    keyup: function keyup(bindArg, event) {
       if (event.which === 27 || event.keyCode === 27) {
         bindArg.setVmValue(event);
       }
     }
   }
 }, {
-  name: 'change',
+  name: "change",
   bind: function bind(bindArg) {
     var bindValue = changeBinding(bindArg.elementBind);
     bindArg.autorun(function (bindArg, c) {
@@ -181,7 +180,7 @@ exports.default = [{
     return changeBinding(bindArg.elementBind);
   }
 }, {
-  name: 'hover',
+  name: "hover",
   events: {
     mouseenter: function mouseenter(bindArg) {
       bindArg.setVmValue(true);
@@ -191,7 +190,7 @@ exports.default = [{
     }
   }
 }, {
-  name: 'focus',
+  name: "focus",
   events: {
     focus: function focus(bindArg) {
       if (!bindArg.getVmValue()) bindArg.setVmValue(true);
@@ -211,14 +210,14 @@ exports.default = [{
     }
   }
 }, {
-  name: 'toggle',
+  name: "toggle",
   events: {
     click: function click(bindArg) {
       bindArg.setVmValue(!bindArg.getVmValue());
     }
   }
 }, {
-  name: 'ref',
+  name: "ref",
   bind: function bind(bindArg) {
     bindArg.component[bindArg.bindValue] = bindArg.element;
   }

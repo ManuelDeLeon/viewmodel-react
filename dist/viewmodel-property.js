@@ -39,7 +39,7 @@ var isNumber = function isNumber(obj) {
 };
 
 var isInteger = function isInteger(n) {
-  if (!isNumber(n) || ~n.toString().indexOf('.')) return false;
+  if (!isNumber(n) || ~n.toString().indexOf(".")) return false;
 
   var value = parseFloat(n);
   return value === +value && value === (value | 0);
@@ -50,11 +50,11 @@ var isObject = function isObject(obj) {
 };
 
 var isString = function isString(str) {
-  return typeof str === 'string' || str instanceof String;
+  return typeof str === "string" || str instanceof String;
 };
 
 var isBoolean = function isBoolean(val) {
-  return typeof val === 'boolean';
+  return typeof val === "boolean";
 };
 
 var isDate = function isDate(obj) {

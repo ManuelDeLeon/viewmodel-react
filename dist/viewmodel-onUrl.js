@@ -1,11 +1,11 @@
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.getLoadUrl = exports.getSaveUrl = undefined;
 
-var _lzstring = require('./lzstring');
+var _lzstring = require("./lzstring");
 
 var _lzstring2 = _interopRequireDefault(_lzstring);
 
@@ -13,20 +13,20 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var getSavedData, getUrl, _parseUri, updateQueryString;
 
-if (typeof window !== 'undefined' && window.history) {
+if (typeof window !== "undefined" && window.history) {
   (function (history) {
     var pushState, replaceState;
     pushState = history.pushState;
     replaceState = history.replaceState;
     if (pushState) {
       history.pushState = function (state, title, url) {
-        if (typeof history.onstatechange === 'function') {
+        if (typeof history.onstatechange === "function") {
           history.onstatechange(state, title, url);
         }
         return pushState.apply(history, arguments);
       };
       history.replaceState = function (state, title, url) {
-        if (typeof history.onstatechange === 'function') {
+        if (typeof history.onstatechange === "function") {
           history.onstatechange(state, title, url);
         }
         return replaceState.apply(history, arguments);
@@ -81,26 +81,26 @@ updateQueryString = function updateQueryString(key, value, url) {
   if (!url) {
     url = window.location.href;
   }
-  re = new RegExp('([?&])' + key + '=.*?(&|#|$)(.*)', 'gi');
+  re = new RegExp("([?&])" + key + "=.*?(&|#|$)(.*)", "gi");
   hash = void 0;
   if (re.test(url)) {
-    if (typeof value !== 'undefined' && value !== null) {
-      return url.replace(re, '$1' + key + '=' + value + '$2$3');
+    if (typeof value !== "undefined" && value !== null) {
+      return url.replace(re, "$1" + key + "=" + value + "$2$3");
     } else {
-      hash = url.split('#');
-      url = hash[0].replace(re, '$1$3').replace(/(&|\?)$/, '');
-      if (typeof hash[1] !== 'undefined' && hash[1] !== null) {
-        url += '#' + hash[1];
+      hash = url.split("#");
+      url = hash[0].replace(re, "$1$3").replace(/(&|\?)$/, "");
+      if (typeof hash[1] !== "undefined" && hash[1] !== null) {
+        url += "#" + hash[1];
       }
       return url;
     }
   } else {
-    if (typeof value !== 'undefined' && value !== null) {
-      separator = url.indexOf('?') !== -1 ? '&' : '?';
-      hash = url.split('#');
-      url = hash[0] + separator + key + '=' + value;
-      if (typeof hash[1] !== 'undefined' && hash[1] !== null) {
-        url += '#' + hash[1];
+    if (typeof value !== "undefined" && value !== null) {
+      separator = url.indexOf("?") !== -1 ? "&" : "?";
+      hash = url.split("#");
+      url = hash[0] + separator + key + "=" + value;
+      if (typeof hash[1] !== "undefined" && hash[1] !== null) {
+        url += "#" + hash[1];
       }
       return url;
     } else {
@@ -129,7 +129,7 @@ getSavedData = function getSavedData(url) {
 
 var getSaveUrl = function getSaveUrl(vmObject) {
   return function (viewmodel) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     var vmHash = vmObject.getComponentPath(viewmodel);
     viewmodel.vmComputations.push(vmObject.Tracker.autorun(function (c) {
       var data, dataCompressed, dataString, fields, savedData, url;
@@ -151,7 +151,7 @@ var getSaveUrl = function getSaveUrl(vmObject) {
 
 var getLoadUrl = function getLoadUrl(vmObject) {
   return function (viewmodel) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     var updateFromUrl;
     updateFromUrl = function updateFromUrl(state, title, url) {
       var data, savedData, vmHash;

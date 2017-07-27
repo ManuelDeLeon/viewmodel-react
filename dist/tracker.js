@@ -201,7 +201,7 @@ Tracker.Computation = function (f, parent, onError) {
 Tracker.Computation.prototype.onInvalidate = function (f) {
   var self = this;
 
-  if (typeof f !== 'function') throw new Error("onInvalidate requires a function");
+  if (typeof f !== "function") throw new Error("onInvalidate requires a function");
 
   if (self.invalidated) {
     Tracker.nonreactive(function () {
@@ -220,7 +220,7 @@ Tracker.Computation.prototype.onInvalidate = function (f) {
 Tracker.Computation.prototype.onStop = function (f) {
   var self = this;
 
-  if (typeof f !== 'function') throw new Error("onStop requires a function");
+  if (typeof f !== "function") throw new Error("onStop requires a function");
 
   if (self.stopped) {
     Tracker.nonreactive(function () {
@@ -410,8 +410,10 @@ Tracker.Dependency.prototype.hasDependents = function () {
  * @locus Client
  */
 Tracker.flush = function (options) {
-  Tracker._runFlush({ finishSynchronously: true,
-    throwFirstError: options && options._throwFirstError });
+  Tracker._runFlush({
+    finishSynchronously: true,
+    throwFirstError: options && options._throwFirstError
+  });
 };
 
 // Run all pending computations and afterFlush callbacks.  If we were not called
@@ -443,7 +445,6 @@ Tracker._runFlush = function (options) {
   var finishedTry = false;
   try {
     while (pendingComputations.length || afterFlushCallbacks.length) {
-
       // recompute all pending computations
       while (pendingComputations.length) {
         var comp = pendingComputations.shift();
@@ -522,7 +523,7 @@ Tracker._runFlush = function (options) {
  * @returns {Tracker.Computation}
  */
 Tracker.autorun = function (f, options) {
-  if (typeof f !== 'function') throw new Error('Tracker.autorun requires a function argument');
+  if (typeof f !== "function") throw new Error("Tracker.autorun requires a function argument");
 
   options = options || {};
 

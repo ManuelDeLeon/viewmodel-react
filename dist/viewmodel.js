@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -6,37 +6,37 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _tracker = require('./tracker');
+var _tracker = require("./tracker");
 
 var _tracker2 = _interopRequireDefault(_tracker);
 
-var _helper = require('./helper');
+var _helper = require("./helper");
 
 var _helper2 = _interopRequireDefault(_helper);
 
-var _reactiveArray = require('./reactive-array');
+var _reactiveArray = require("./reactive-array");
 
 var _reactiveArray2 = _interopRequireDefault(_reactiveArray);
 
-var _viewmodelProperty = require('./viewmodel-property');
+var _viewmodelProperty = require("./viewmodel-property");
 
 var _viewmodelProperty2 = _interopRequireDefault(_viewmodelProperty);
 
-var _parseBind2 = require('./parseBind');
+var _parseBind2 = require("./parseBind");
 
 var _parseBind3 = _interopRequireDefault(_parseBind2);
 
-var _bindings = require('./bindings');
+var _bindings = require("./bindings");
 
 var _bindings2 = _interopRequireDefault(_bindings);
 
-var _viewmodelOnUrl = require('./viewmodel-onUrl');
+var _viewmodelOnUrl = require("./viewmodel-onUrl");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var IS_NATIVE = 'IS_NATIVE';
+var IS_NATIVE = "IS_NATIVE";
 var ReactDOM = void 0;
 var pendingShared = [];
 var savedOnUrl = [];
@@ -47,17 +47,17 @@ var ViewModel = function () {
   }
 
   _createClass(ViewModel, null, [{
-    key: 'nextId',
+    key: "nextId",
     value: function nextId() {
       return _helper2.default.nextId++;
     }
   }, {
-    key: 'global',
+    key: "global",
     value: function global(obj) {
       ViewModel.globals.push(obj);
     }
   }, {
-    key: 'prepareRoot',
+    key: "prepareRoot",
     value: function prepareRoot() {
       if (!ViewModel.rootComponents) {
         var dep = new ViewModel.Tracker.Dependency();
@@ -65,7 +65,7 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'add',
+    key: "add",
     value: function add(component) {
       var name = component.vmComponentName;
       if (!ViewModel.components[name]) {
@@ -78,7 +78,7 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'find',
+    key: "find",
     value: function find(nameOrPredicate, predicateOrNothing) {
       var onlyOne = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
@@ -90,7 +90,6 @@ var ViewModel = function () {
       } else {
         collection = ViewModel.components;
       }
-      ;
       if (!collection) return [];
       var result = [];
       for (var groupName in collection) {
@@ -105,7 +104,7 @@ var ViewModel = function () {
       return result;
     }
   }, {
-    key: 'findOne',
+    key: "findOne",
     value: function findOne(nameOrPredicate, predicateOrNothing) {
       var results = ViewModel.find(nameOrPredicate, predicateOrNothing, true);
       if (results.length) {
@@ -113,26 +112,26 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'mixin',
+    key: "mixin",
     value: function mixin(obj) {
       for (var key in obj) {
         ViewModel.mixins[key] = obj[key];
       }
     }
   }, {
-    key: 'signal',
+    key: "signal",
     value: function signal(obj) {
       for (var key in obj) {
         ViewModel.signals[key] = obj[key];
       }
     }
   }, {
-    key: 'share',
+    key: "share",
     value: function share(obj) {
       pendingShared.push(obj);
     }
   }, {
-    key: 'loadPendingShared',
+    key: "loadPendingShared",
     value: function loadPendingShared() {
       if (pendingShared.length === 0) return;
       var _iteratorNormalCompletion = true;
@@ -174,7 +173,7 @@ var ViewModel = function () {
       pendingShared.length = 0;
     }
   }, {
-    key: 'prop',
+    key: "prop",
     value: function prop(initial, component) {
       var dependency = new ViewModel.Tracker.Dependency();
       var oldChanged = dependency.changed.bind(dependency);
@@ -260,7 +259,7 @@ var ViewModel = function () {
       funProp.addComponent = function (component) {
         if (!components[component.vmId]) components[component.vmId] = component;
       };
-      Object.defineProperty(funProp, 'value', {
+      Object.defineProperty(funProp, "value", {
         get: function get() {
           return _value;
         }
@@ -338,7 +337,7 @@ var ViewModel = function () {
       return funProp;
     }
   }, {
-    key: 'getValueRef',
+    key: "getValueRef",
     value: function getValueRef(container, prop) {
       return function (element) {
         container.vmComputations.push(ViewModel.Tracker.autorun(function () {
@@ -351,7 +350,7 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'getValue',
+    key: "getValue",
     value: function getValue(container, repeatObject, repeatIndex, bindValue, viewmodel, funPropReserved) {
       var value = void 0;
       if (arguments.length < 5) viewmodel = container;
@@ -376,20 +375,20 @@ var ViewModel = function () {
       } else if (_helper2.default.isQuoted(bindValue)) {
         value = _helper2.default.removeQuotes(bindValue);
       } else {
-        var negate = bindValue.charAt(0) === '!';
+        var negate = bindValue.charAt(0) === "!";
         if (negate) {
           bindValue = bindValue.substring(1);
         }
         var dotIndex = bindValue.search(_helper2.default.dotRegex);
-        if (~dotIndex && bindValue.charAt(dotIndex) !== '.') {
+        if (~dotIndex && bindValue.charAt(dotIndex) !== ".") {
           dotIndex += 1;
         }
-        var parenIndexStart = bindValue.indexOf('(');
+        var parenIndexStart = bindValue.indexOf("(");
         var parenIndexEnd = _helper2.default.getMatchingParenIndex(bindValue, parenIndexStart);
         var breakOnFirstDot = ~dotIndex && (!~parenIndexStart || dotIndex < parenIndexStart || dotIndex === parenIndexEnd + 1);
         if (breakOnFirstDot) {
           var newBindValue = bindValue.substring(dotIndex + 1);
-          var newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
+          var newBindValueCheck = newBindValue.endsWith("()") ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
           var newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
           value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel);
         } else {
@@ -403,7 +402,7 @@ var ViewModel = function () {
               name = Object.keys(parsed)[0];
               var second = parsed[name];
               if (second.length > 2) {
-                var ref1 = second.substr(1, second.length - 2).split(',');
+                var ref1 = second.substr(1, second.length - 2).split(",");
                 for (var j = 0, len = ref1.length; j < len; j++) {
                   var arg = ref1[j].trim();
                   var newArg = void 0;
@@ -412,7 +411,7 @@ var ViewModel = function () {
                   } else if (_helper2.default.isQuoted(arg)) {
                     newArg = _helper2.default.removeQuotes(arg);
                   } else {
-                    var neg = arg.charAt(0) === '!';
+                    var neg = arg.charAt(0) === "!";
                     if (neg) {
                       arg = arg.substring(1);
                     }
@@ -432,7 +431,7 @@ var ViewModel = function () {
             }
             var primitive = _helper2.default.isPrimitive(name);
             if (container.vmId && !primitive && !container[name]) {
-              container[name] = ViewModel.prop('', viewmodel);
+              container[name] = ViewModel.prop("", viewmodel);
             }
             if (!primitive && !(container != null && (container[name] != null || _helper2.default.isObject(container) || _helper2.default.isString(container)))) {
               var errorMsg = "Can't access '" + name + "' of '" + container + "'.";
@@ -457,7 +456,7 @@ var ViewModel = function () {
       return value;
     }
   }, {
-    key: 'getVmValueGetter',
+    key: "getVmValueGetter",
     value: function getVmValueGetter(component, repeatObject, repeatIndex, bindValue) {
       return function () {
         var optBindValue = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : bindValue;
@@ -466,12 +465,12 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'getVmValueSetter',
+    key: "getVmValueSetter",
     value: function getVmValueSetter(component, repeatObject, repeatIndex, bindValue) {
       if (!_helper2.default.isString(bindValue)) {
         return function () {};
       }
-      if (~bindValue.indexOf(')', bindValue.length - 1)) {
+      if (~bindValue.indexOf(")", bindValue.length - 1)) {
         return function () {
           return ViewModel.getValue(component, repeatObject, repeatIndex, bindValue);
         };
@@ -482,7 +481,7 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'setValueFull',
+    key: "setValueFull",
     value: function setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel) {
       var prevContainer = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : {};
 
@@ -495,7 +494,7 @@ var ViewModel = function () {
           ViewModel.getValue(container, repeatObject, repeatIndex, bindValue, viewmodel);
         } else {
           i = bindValue.search(_helper2.default.dotRegex);
-          if (bindValue.charAt(i) !== '.') {
+          if (bindValue.charAt(i) !== ".") {
             i += 1;
           }
           newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
@@ -524,12 +523,12 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'setValue',
+    key: "setValue",
     value: function setValue(viewmodel, repeatObject, repeatIndex, bindValue) {
       if (!_helper2.default.isString(bindValue)) {
         return function () {};
       }
-      if (~bindValue.indexOf(')', bindValue.length - 1)) {
+      if (~bindValue.indexOf(")", bindValue.length - 1)) {
         return function () {
           return ViewModel.getValue(viewmodel, repeatObject, repeatIndex, bindValue, viewmodel);
         };
@@ -540,10 +539,10 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'getClass',
+    key: "getClass",
     value: function getClass(component, repeatObject, repeatIndex, initialClass, bindText) {
       var cssClass = [initialClass];
-      if (bindText.trim()[0] === '{') {
+      if (bindText.trim()[0] === "{") {
         var cssObj = ViewModel.parseBind(bindText);
         for (var key in cssObj) {
           var value = cssObj[key];
@@ -554,16 +553,16 @@ var ViewModel = function () {
       } else {
         cssClass.push(ViewModel.getValue(component, repeatObject, repeatIndex, bindText));
       }
-      return cssClass.join(' ');
+      return cssClass.join(" ");
     }
   }, {
-    key: 'getDisabled',
+    key: "getDisabled",
     value: function getDisabled(component, repeatObject, repeatIndex, isEnabled, bindText) {
       var value = ViewModel.getValue(component, repeatObject, repeatIndex, bindText);
       return !!(isEnabled ? !value : value);
     }
   }, {
-    key: 'getStyle',
+    key: "getStyle",
     value: function getStyle(component, repeatObject, repeatIndex, initialStyle, bindText) {
       var initialStyles = void 0;
       if (!!initialStyle) {
@@ -571,10 +570,10 @@ var ViewModel = function () {
       }
 
       var objectStyles = void 0;
-      if (bindText.trim()[0] === '[') {
+      if (bindText.trim()[0] === "[") {
         objectStyles = {};
         var itemsString = bindText.substr(1, bindText.length - 2);
-        var items = itemsString.split(',');
+        var items = itemsString.split(",");
         var _iteratorNormalCompletion2 = true;
         var _didIteratorError2 = false;
         var _iteratorError2 = undefined;
@@ -604,7 +603,7 @@ var ViewModel = function () {
             }
           }
         }
-      } else if (bindText.trim()[0] === '{') {
+      } else if (bindText.trim()[0] === "{") {
         objectStyles = {};
         var preObjectStyles = ViewModel.parseBind(bindText);
         for (var _key in preObjectStyles) {
@@ -627,12 +626,12 @@ var ViewModel = function () {
       return styles;
     }
   }, {
-    key: 'parseBind',
+    key: "parseBind",
     value: function parseBind(str) {
       return (0, _parseBind3.default)(str);
     }
   }, {
-    key: 'load',
+    key: "load",
     value: function load(toLoad, container) {
       var component = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : container;
 
@@ -661,12 +660,12 @@ var ViewModel = function () {
         loadObj(toLoad);
       }
     }
-  }, {
-    key: 'autorunOnce',
-
 
     // Special thanks to @dino and @faceyspacey for this implementation
     // shamelessly stolen from their TrackerReact project
+
+  }, {
+    key: "autorunOnce",
     value: function autorunOnce(renderFunc, component) {
       var name = "vmRenderComputation";
       var retValue = void 0;
@@ -688,18 +687,18 @@ var ViewModel = function () {
       return retValue;
     }
   }, {
-    key: 'prepareComponentWillMount',
+    key: "prepareComponentWillMount",
     value: function prepareComponentWillMount(component) {
       var old = component.componentWillMount;
       component.componentWillMount = function () {
         var _this = this;
 
-        var parent = this.props['data-vm-parent'];
+        var parent = this.props["data-vm-parent"];
         if (parent && parent.children) {
           parent.children().push(this);
         }
         this.parent = function () {
-          parent = this.props['data-vm-parent'];
+          parent = this.props["data-vm-parent"];
           if (parent && parent.vmId) {
             this.vmDependsOnParent = true;
             return parent;
@@ -709,7 +708,7 @@ var ViewModel = function () {
         };
         this.load(this.props);
 
-        var bind = this.props['data-bind'];
+        var bind = this.props["data-bind"];
         if (bind) {
           var bindObject = (0, _parseBind3.default)(bind);
           if (bindObject.ref) {
@@ -750,7 +749,7 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'prepareComponentDidMount',
+    key: "prepareComponentDidMount",
     value: function prepareComponentDidMount(component) {
       var old = component.componentDidMount;
       var componentDidMount = function componentDidMount() {
@@ -852,7 +851,7 @@ var ViewModel = function () {
       component.componentDidMount = componentDidMount;
     }
   }, {
-    key: 'prepareComponentWillUnmount',
+    key: "prepareComponentWillUnmount",
     value: function prepareComponentWillUnmount(component) {
       var old = component.componentWillUnmount;
       component.componentWillUnmount = function () {
@@ -861,7 +860,6 @@ var ViewModel = function () {
         var _iteratorError6 = undefined;
 
         try {
-
           for (var _iterator6 = component.vmDestroyed[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
             var _fun = _step6.value;
 
@@ -901,7 +899,7 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'prepareComponentDidUpdate',
+    key: "prepareComponentDidUpdate",
     value: function prepareComponentDidUpdate(component) {
       var old = component.componentDidUpdate;
       component.componentDidUpdate = function () {
@@ -910,14 +908,13 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'prepareShouldComponentUpdate',
+    key: "prepareShouldComponentUpdate",
     value: function prepareShouldComponentUpdate(component) {
       if (!component.shouldComponentUpdate) {
         component.shouldComponentUpdate = function () {
           var parent = component.parent();
           if (component.vmChanged || component.vmDependsOnParent && parent.vmChanged) {
-
-            if (parent && !parent.vmChanged && !component.hasOwnProperty('vmUpdateParent')) {
+            if (parent && !parent.vmChanged && !component.hasOwnProperty("vmUpdateParent")) {
               for (var ref in parent) {
                 if (parent[ref] === component) {
                   component.vmUpdateParent = true;
@@ -940,7 +937,7 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'prepareComponentWillReceiveProps',
+    key: "prepareComponentWillReceiveProps",
     value: function prepareComponentWillReceiveProps(component) {
       var old = component.componentWillReceiveProps;
       component.componentWillReceiveProps = function (props) {
@@ -949,11 +946,11 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'prepareMethodsAndProperties',
+    key: "prepareMethodsAndProperties",
     value: function prepareMethodsAndProperties(component, initial) {
       for (var prop in initial) {
         if (ViewModel.reactKeyword[prop]) continue;
-        if (typeof initial[prop] === 'function') {
+        if (typeof initial[prop] === "function") {
           component[prop] = initial[prop].bind(component);
           component[prop].vmIsFunc = true;
         } else {
@@ -962,7 +959,7 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'prepareChildren',
+    key: "prepareChildren",
     value: function prepareChildren(component) {
       var dependency = new ViewModel.Tracker.Dependency();
       var oldChanged = dependency.changed.bind(dependency);
@@ -985,9 +982,8 @@ var ViewModel = function () {
       component.children = funProp;
     }
   }, {
-    key: 'prepareData',
+    key: "prepareData",
     value: function prepareData(component) {
-
       component.data = function () {
         var fields = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
 
@@ -1007,9 +1003,8 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'prepareValidations',
+    key: "prepareValidations",
     value: function prepareValidations(component) {
-
       component.valid = function () {
         var fields = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
 
@@ -1064,9 +1059,8 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'prepareReset',
+    key: "prepareReset",
     value: function prepareReset(component) {
-
       component.reset = function () {
         for (var prop in component) {
           if (component[prop] && component[prop].vmPropId) {
@@ -1076,7 +1070,7 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'loadMixinShare',
+    key: "loadMixinShare",
     value: function loadMixinShare(toLoad, collection, component, bag) {
       if (!toLoad) return;
       if (toLoad instanceof Array) {
@@ -1151,7 +1145,7 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'prepareLoad',
+    key: "prepareLoad",
     value: function prepareLoad(component) {
       component.load = function (toLoad) {
         if (!toLoad) return;
@@ -1193,17 +1187,17 @@ var ViewModel = function () {
         ViewModel.loadMixinShare(toLoad.mixin, ViewModel.mixins, component, component.vmMixins);
 
         // Whatever is in 'load' is loaded before direct properties
-        component.load(toLoad.load
+        component.load(toLoad.load);
 
         // Load the object into the component
         // (direct properties)
-        );ViewModel.load(toLoad, component);
+        ViewModel.load(toLoad, component);
 
         var hooks = {
-          created: 'vmCreated',
-          rendered: 'vmRendered',
-          destroyed: 'vmDestroyed',
-          autorun: 'vmAutorun'
+          created: "vmCreated",
+          rendered: "vmRendered",
+          destroyed: "vmDestroyed",
+          autorun: "vmAutorun"
         };
 
         for (var hook in hooks) {
@@ -1241,7 +1235,7 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'prepareComponent',
+    key: "prepareComponent",
     value: function prepareComponent(componentName, component, initial) {
       component.vmId = ViewModel.nextId();
       component.vmComponentName = componentName;
@@ -1314,7 +1308,7 @@ var ViewModel = function () {
       ViewModel.prepareReset(component);
     }
   }, {
-    key: 'addBinding',
+    key: "addBinding",
     value: function addBinding(binding) {
       if (!binding.priority) binding.priority = 1;
       if (binding.selector) binding.priority += 1;
@@ -1325,7 +1319,7 @@ var ViewModel = function () {
       ViewModel.bindings[binding.name].push(binding);
     }
   }, {
-    key: 'bindElement',
+    key: "bindElement",
     value: function bindElement(component, repeatObject, repeatIndex, bindingText) {
       return function (element) {
         if (!element || element.vmBound) return;
@@ -1336,13 +1330,13 @@ var ViewModel = function () {
         for (var bindName in bindObject) {
           if (ViewModel.compiledBindings[bindName]) continue;
           var bindValue = bindObject[bindName];
-          if (~bindName.indexOf(' ')) {
+          if (~bindName.indexOf(" ")) {
             var _iteratorNormalCompletion12 = true;
             var _didIteratorError12 = false;
             var _iteratorError12 = undefined;
 
             try {
-              for (var _iterator12 = bindName.split(' ')[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+              for (var _iterator12 = bindName.split(" ")[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
                 var bindNameSingle = _step12.value;
 
                 ViewModel.bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindNameSingle, bindId);
@@ -1368,7 +1362,7 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'bindSingle',
+    key: "bindSingle",
     value: function bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId) {
       var bindArg = ViewModel.getBindArgument(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId);
       var binding = ViewModel.getBinding(bindName, bindArg);
@@ -1394,13 +1388,13 @@ var ViewModel = function () {
         };
         for (var eventName in binding.events) {
           var eventFunc = binding.events[eventName];
-          if (~eventName.indexOf(' ')) {
+          if (~eventName.indexOf(" ")) {
             var _iteratorNormalCompletion13 = true;
             var _didIteratorError13 = false;
             var _iteratorError13 = undefined;
 
             try {
-              for (var _iterator13 = eventName.split(' ')[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
+              for (var _iterator13 = eventName.split(" ")[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
                 var event = _step13.value;
 
                 func(event, eventFunc);
@@ -1426,39 +1420,39 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'getComponentPath',
+    key: "getComponentPath",
     value: function getComponentPath(component) {
       var path = component.vmComponentName;
       var parent = component.parent();
       if (parent) {
-        path = ViewModel.getComponentPath(parent) + component.vmPathToParent + '/' + path;
+        path = ViewModel.getComponentPath(parent) + component.vmPathToParent + "/" + path;
       } else {
-        path = component.vmPathToParent + '/' + path;
+        path = component.vmPathToParent + "/" + path;
       }
 
       return path;
     }
   }, {
-    key: 'getPathToRoot',
+    key: "getPathToRoot",
     value: function getPathToRoot(component) {
       if (!ReactDOM) {
-        ReactDOM = navigator.project === 'ReactNative' ? IS_NATIVE : require('react-dom');
+        ReactDOM = navigator.project === "ReactNative" ? IS_NATIVE : require("react-dom");
       }
 
       if (ReactDOM === IS_NATIVE) {
-        return '/';
+        return "/";
       } else {
         var difference, i, parentPath, viewmodelPath;
         return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
       }
     }
   }, {
-    key: 'getPathToParent',
+    key: "getPathToParent",
     value: function getPathToParent(component) {
       var difference, i, parentPath, viewmodelPath;
       var parent = component.parent();
       if (!parent) {
-        return '/';
+        return "/";
       }
       viewmodelPath = component.vmPathToRoot;
       if (!parent.vmPathToRoot) {
@@ -1474,11 +1468,11 @@ var ViewModel = function () {
       return difference;
     }
   }, {
-    key: 'getElementPath',
+    key: "getElementPath",
     value: function getElementPath(element) {
       var i, ix, sibling, siblings;
-      if (!element || !element.parentNode || element.tagName === 'HTML' || element === document.body) {
-        return '/';
+      if (!element || !element.parentNode || element.tagName === "HTML" || element === document.body) {
+        return "/";
       }
       ix = 0;
       siblings = element.parentNode.childNodes;
@@ -1486,7 +1480,7 @@ var ViewModel = function () {
       while (i < siblings.length) {
         sibling = siblings[i];
         if (sibling === element) {
-          return ViewModel.getElementPath(element.parentNode) + '/' + element.tagName + '[' + (ix + 1) + ']';
+          return ViewModel.getElementPath(element.parentNode) + "/" + element.tagName + "[" + (ix + 1) + "]";
         }
         if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
           ix++;
@@ -1495,7 +1489,7 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'getBinding',
+    key: "getBinding",
     value: function getBinding(bindName, bindArg) {
       var binding = null;
       var bindingArray = ViewModel.bindings[bindName];
@@ -1510,10 +1504,10 @@ var ViewModel = function () {
           });
         }
       }
-      return binding || ViewModel.getBinding('default', bindArg);
+      return binding || ViewModel.getBinding("default", bindArg);
     }
   }, {
-    key: 'getBindArgument',
+    key: "getBindArgument",
     value: function getBindArgument(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId) {
       var getDelayedSetter = function getDelayedSetter(bindArg, setter) {
         if (bindArg.elementBind.throttle) {
@@ -1548,7 +1542,7 @@ var ViewModel = function () {
       return bindArg;
     }
   }, {
-    key: 'throttle',
+    key: "throttle",
     value: function throttle(func, wait, options) {
       var context, args, result;
       var timeout = null;
@@ -1581,7 +1575,7 @@ var ViewModel = function () {
       };
     }
   }, {
-    key: 'signalContainer',
+    key: "signalContainer",
     value: function signalContainer(containerName, container) {
       var all = [];
       if (containerName) {
@@ -1594,7 +1588,7 @@ var ViewModel = function () {
             var transform = value.transform || function (e) {
               return e;
             };
-            var boundProp = '_' + key + '_Bound';
+            var boundProp = "_" + key + "_Bound";
             single.onCreated = function () {
               var vmProp = container[key];
               var func = function func(e) {
@@ -1603,7 +1597,7 @@ var ViewModel = function () {
               var funcToUse = value.throttle ? ViewModel.throttle(func, value.throttle) : func;
               container[boundProp] = funcToUse;
               value.target.addEventListener(value.event, this[boundProp]);
-              var event = document.createEvent('HTMLEvents');
+              var event = document.createEvent("HTMLEvents");
               event.initEvent(value.event, true, false);
               value.target.dispatchEvent(event);
             };
@@ -1617,7 +1611,7 @@ var ViewModel = function () {
       return all;
     }
   }, {
-    key: 'signalsToLoad',
+    key: "signalsToLoad",
     value: function signalsToLoad(containerName, container) {
       if (containerName instanceof Array) {
         var signals = [];
@@ -1674,10 +1668,10 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: 'loadComponent',
+    key: "loadComponent",
     value: function loadComponent(comp) {
       var vm = {};
-      ViewModel.prepareComponent('TestComponent', vm, null);
+      ViewModel.prepareComponent("TestComponent", vm, null);
       vm.load(comp);
       vm.reset();
       return vm;
@@ -1727,8 +1721,8 @@ ViewModel.reserved = {
   child: 1,
   reset: 1,
   data: 1,
-  'data-vm-parent': 1,
-  'data-bind': 1
+  "data-vm-parent": 1,
+  "data-bind": 1
 };
 
 ViewModel.reactKeyword = {
@@ -1761,9 +1755,9 @@ ViewModel.funPropReserved = {
 ViewModel.compiledBindings = {
   text: 1,
   html: 1,
-  'class': 1,
-  'if': 1,
-  'style': 1,
+  class: 1,
+  if: 1,
+  style: 1,
   repeat: 1,
   key: 1
 };
@@ -1776,9 +1770,11 @@ ViewModel.signals = {};
 ViewModel.bindings = {};
 
 Object.defineProperties(ViewModel, {
-  "property": { get: function get() {
+  property: {
+    get: function get() {
       return new _viewmodelProperty2.default();
-    } }
+    }
+  }
 });
 
 ViewModel.Property = _viewmodelProperty2.default;

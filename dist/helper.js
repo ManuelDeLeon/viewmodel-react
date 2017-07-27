@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -11,49 +11,49 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var _tokens = {
-  '**': function _(a, b) {
+  "**": function _(a, b) {
     return Math.pow(a, b);
   },
-  '*': function _(a, b) {
+  "*": function _(a, b) {
     return a() * b();
   },
-  '/': function _(a, b) {
+  "/": function _(a, b) {
     return a() / b();
   },
-  '%': function _(a, b) {
+  "%": function _(a, b) {
     return a() % b();
   },
-  '+': function _(a, b) {
+  "+": function _(a, b) {
     return a() + b();
   },
-  '-': function _(a, b) {
+  "-": function _(a, b) {
     return a() - b();
   },
-  '<': function _(a, b) {
+  "<": function _(a, b) {
     return a() < b();
   },
-  '<=': function _(a, b) {
+  "<=": function _(a, b) {
     return a() <= b();
   },
-  '>': function _(a, b) {
+  ">": function _(a, b) {
     return a() > b();
   },
-  '>=': function _(a, b) {
+  ">=": function _(a, b) {
     return a() >= b();
   },
-  '==': function _(a, b) {
+  "==": function _(a, b) {
     return a() == b();
   },
-  '!==': function _(a, b) {
+  "!==": function _(a, b) {
     return a() !== b();
   },
-  '===': function _(a, b) {
+  "===": function _(a, b) {
     return a() === b();
   },
-  '&&': function _(a, b) {
+  "&&": function _(a, b) {
     return a() && b();
   },
-  '||': function _(a, b) {
+  "||": function _(a, b) {
     return a() || b();
   }
 };
@@ -72,47 +72,47 @@ var Helper = function () {
   }
 
   _createClass(Helper, null, [{
-    key: 'isArray',
+    key: "isArray",
     value: function isArray(arr) {
       return arr instanceof Array;
     }
   }, {
-    key: 'isObject',
+    key: "isObject",
     value: function isObject(obj) {
-      return (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === "object" && obj !== null && !(obj instanceof Date);
+      return (typeof obj === "undefined" ? "undefined" : _typeof(obj)) === "object" && obj !== null && !(obj instanceof Date);
     }
   }, {
-    key: 'isFunction',
+    key: "isFunction",
     value: function isFunction(fun) {
-      return fun && {}.toString.call(fun) === '[object Function]';
+      return fun && {}.toString.call(fun) === "[object Function]";
     }
   }, {
-    key: 'isString',
+    key: "isString",
     value: function isString(str) {
-      return typeof str === 'string' || str instanceof String;
+      return typeof str === "string" || str instanceof String;
     }
   }, {
-    key: 'isNumeric',
+    key: "isNumeric",
     value: function isNumeric(n) {
       return !isNaN(parseFloat(n)) && isFinite(n);
     }
   }, {
-    key: 'isQuoted',
+    key: "isQuoted",
     value: function isQuoted(str) {
       return Helper.stringRegex.test(str);
     }
   }, {
-    key: 'removeQuotes',
+    key: "removeQuotes",
     value: function removeQuotes(str) {
       return str.substr(1, str.length - 2);
     }
   }, {
-    key: 'isPrimitive',
+    key: "isPrimitive",
     value: function isPrimitive(val) {
       return val === "true" || val === "false" || val === "null" || val === "undefined" || Helper.isNumeric(val);
     }
   }, {
-    key: 'getPrimitive',
+    key: "getPrimitive",
     value: function getPrimitive(val) {
       switch (val) {
         case "true":
@@ -132,7 +132,7 @@ var Helper = function () {
       }
     }
   }, {
-    key: 'firstToken',
+    key: "firstToken",
     value: function firstToken(str) {
       var c, candidateToken, i, inQuote, j, k, len, length, token, tokenIndex;
       tokenIndex = -1;
@@ -165,7 +165,7 @@ var Helper = function () {
       return [token, tokenIndex];
     }
   }, {
-    key: 'getMatchingParenIndex',
+    key: "getMatchingParenIndex",
     value: function getMatchingParenIndex(bindValue, parenIndexStart) {
       var currentChar, i, j, openParenCount, ref, ref1;
       if (!~parenIndexStart) {
@@ -174,34 +174,34 @@ var Helper = function () {
       openParenCount = 0;
       for (i = j = ref = parenIndexStart + 1, ref1 = bindValue.length; ref <= ref1 ? j <= ref1 : j >= ref1; i = ref <= ref1 ? ++j : --j) {
         currentChar = bindValue.charAt(i);
-        if (currentChar === ')') {
+        if (currentChar === ")") {
           if (openParenCount === 0) {
             return i;
           } else {
             openParenCount--;
           }
-        } else if (currentChar === '(') {
+        } else if (currentChar === "(") {
           openParenCount++;
         }
       }
       throw new Error("Unbalanced parenthesis");
     }
   }, {
-    key: 'elementMatch',
+    key: "elementMatch",
     value: function elementMatch(el, selector) {
       return (el.matches || el.matchesSelector || el.msMatchesSelector || el.mozMatchesSelector || el.webkitMatchesSelector || el.oMatchesSelector).call(el, selector);
     }
   }, {
-    key: 'reactStyle',
+    key: "reactStyle",
     value: function reactStyle(str) {
-      if (!~str.indexOf('-')) return str;
+      if (!~str.indexOf("-")) return str;
       var retVal = "";
       var _iteratorNormalCompletion = true;
       var _didIteratorError = false;
       var _iteratorError = undefined;
 
       try {
-        for (var _iterator = str.split('-')[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        for (var _iterator = str.split("-")[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
           var block = _step.value;
 
           if (retVal) {
@@ -228,7 +228,7 @@ var Helper = function () {
       return retVal;
     }
   }, {
-    key: 'addStyles',
+    key: "addStyles",
     value: function addStyles(obj, styles) {
       if (styles) {
         for (var style in styles) {
