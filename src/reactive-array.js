@@ -1,5 +1,16 @@
 var ReactiveArray,
-  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  extend = function(child, parent) {
+    for (var key in parent) {
+      if (hasProp.call(parent, key)) child[key] = parent[key];
+    }
+    function ctor() {
+      this.constructor = child;
+    }
+    ctor.prototype = parent.prototype;
+    child.prototype = new ctor();
+    child.__super__ = parent.prototype;
+    return child;
+  },
   hasProp = {}.hasOwnProperty;
 
 ReactiveArray = (function(superClass) {
@@ -33,7 +44,7 @@ ReactiveArray = (function(superClass) {
       dep = p1;
     }
     this.pause = function() {
-      return pause = true;
+      return (pause = true);
     };
     this.resume = function() {
       pause = false;
@@ -88,9 +99,12 @@ ReactiveArray = (function(superClass) {
     var i, predicate, removedValues, underlyingArray, value;
     underlyingArray = this;
     removedValues = [];
-    predicate = typeof valueOrPredicate === "function" ? valueOrPredicate : function(value) {
-      return value === valueOrPredicate;
-    };
+    predicate =
+      typeof valueOrPredicate === "function"
+        ? valueOrPredicate
+        : function(value) {
+            return value === valueOrPredicate;
+          };
     i = 0;
     while (i < underlyingArray.length) {
       value = underlyingArray[i];
@@ -164,7 +178,6 @@ ReactiveArray = (function(superClass) {
   };
 
   return ReactiveArray;
-
 })(Array);
 
 export default ReactiveArray;

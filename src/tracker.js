@@ -33,27 +33,28 @@ Tracker.currentComputation = null;
 // computation ids for tracking, etc.
 Tracker._computations = {};
 
-var setCurrentComputation = function (c) {
+var setCurrentComputation = function(c) {
   Tracker.currentComputation = c;
-  Tracker.active = !! c;
+  Tracker.active = !!c;
 };
 
-var _debugFunc = function () {
-  return function () { console.error.apply(console, arguments); };
+var _debugFunc = function() {
+  return function() {
+    console.error.apply(console, arguments);
+  };
 };
 
-var _maybeSuppressMoreLogs = function (messagesLength) {
+var _maybeSuppressMoreLogs = function(messagesLength) {};
 
-};
-
-var _throwOrLog = function (from, e) {
+var _throwOrLog = function(from, e) {
   if (throwFirstError) {
     throw e;
   } else {
     var printArgs = ["Exception from Tracker " + from + " function:"];
     if (e.stack && e.message && e.name) {
       var idx = e.stack.indexOf(e.message);
-      if (idx < 0 || idx > e.name.length + 2) { // check for "Error: "
+      if (idx < 0 || idx > e.name.length + 2) {
+        // check for "Error: "
         // message is not part of the stack
         var message = e.name + ": " + e.message;
         printArgs.push(message);
@@ -73,7 +74,7 @@ var _throwOrLog = function (from, e) {
 // original function (since `Meteor._noYieldsAllowed` is a
 // no-op). This has the benefit of not adding an unnecessary stack
 // frame on the client.
-var withNoYieldsAllowed = function (f) {
+var withNoYieldsAllowed = function(f) {
   return f;
 };
 
@@ -98,8 +99,8 @@ var throwFirstError = false;
 
 var afterFlushCallbacks = [];
 
-var requireFlush = function () {
-  if (! willFlush) {
+var requireFlush = function() {
+  if (!willFlush) {
     setTimeout(Tracker._runFlush, 0);
     willFlush = true;
   }
@@ -121,10 +122,11 @@ var constructingComputation = false;
  * computation.
  * @instancename computation
  */
-Tracker.Computation = function (f, parent, onError) {
-  if (! constructingComputation)
+Tracker.Computation = function(f, parent, onError) {
+  if (!constructingComputation)
     throw new Error(
-      "Tracker.Computation constructor is private; use Tracker.autorun");
+      "Tracker.Computation constructor is private; use Tracker.autorun"
+    );
   constructingComputation = false;
 
   var self = this;
@@ -183,8 +185,7 @@ Tracker.Computation = function (f, parent, onError) {
     errored = false;
   } finally {
     self.firstRun = false;
-    if (errored)
-      self.stop();
+    if (errored) self.stop();
   }
 };
 
@@ -195,14 +196,14 @@ Tracker.Computation = function (f, parent, onError) {
  * @locus Client
  * @param {Function} callback Function to be called on invalidation. Receives one argument, the computation that was invalidated.
  */
-Tracker.Computation.prototype.onInvalidate = function (f) {
+Tracker.Computation.prototype.onInvalidate = function(f) {
   var self = this;
 
-  if (typeof f !== 'function')
+  if (typeof f !== "function")
     throw new Error("onInvalidate requires a function");
 
   if (self.invalidated) {
-    Tracker.nonreactive(function () {
+    Tracker.nonreactive(function() {
       withNoYieldsAllowed(f)(self);
     });
   } else {
@@ -215,14 +216,13 @@ Tracker.Computation.prototype.onInvalidate = function (f) {
  * @locus Client
  * @param {Function} callback Function to be called on stop. Receives one argument, the computation that was stopped.
  */
-Tracker.Computation.prototype.onStop = function (f) {
+Tracker.Computation.prototype.onStop = function(f) {
   var self = this;
 
-  if (typeof f !== 'function')
-    throw new Error("onStop requires a function");
+  if (typeof f !== "function") throw new Error("onStop requires a function");
 
   if (self.stopped) {
-    Tracker.nonreactive(function () {
+    Tracker.nonreactive(function() {
       withNoYieldsAllowed(f)(self);
     });
   } else {
@@ -236,12 +236,12 @@ Tracker.Computation.prototype.onStop = function (f) {
  * @summary Invalidates this computation so that it will be rerun.
  * @locus Client
  */
-Tracker.Computation.prototype.invalidate = function () {
+Tracker.Computation.prototype.invalidate = function() {
   var self = this;
-  if (! self.invalidated) {
+  if (!self.invalidated) {
     // if we're currently in _recompute(), don't enqueue
     // ourselves, since we'll rerun immediately anyway.
-    if (! self._recomputing && ! self.stopped) {
+    if (!self._recomputing && !self.stopped) {
       requireFlush();
       pendingComputations.push(this);
     }
@@ -250,8 +250,8 @@ Tracker.Computation.prototype.invalidate = function () {
 
     // callbacks can't add callbacks, because
     // self.invalidated === true.
-    for(var i = 0, f; f = self._onInvalidateCallbacks[i]; i++) {
-      Tracker.nonreactive(function () {
+    for (var i = 0, f; (f = self._onInvalidateCallbacks[i]); i++) {
+      Tracker.nonreactive(function() {
         withNoYieldsAllowed(f)(self);
       });
     }
@@ -265,16 +265,16 @@ Tracker.Computation.prototype.invalidate = function () {
  * @summary Prevents this computation from rerunning.
  * @locus Client
  */
-Tracker.Computation.prototype.stop = function () {
+Tracker.Computation.prototype.stop = function() {
   var self = this;
 
-  if (! self.stopped) {
+  if (!self.stopped) {
     self.stopped = true;
     self.invalidate();
     // Unregister from global Tracker.
     delete Tracker._computations[self._id];
-    for(var i = 0, f; f = self._onStopCallbacks[i]; i++) {
-      Tracker.nonreactive(function () {
+    for (var i = 0, f; (f = self._onStopCallbacks[i]); i++) {
+      Tracker.nonreactive(function() {
         withNoYieldsAllowed(f)(self);
       });
     }
@@ -282,7 +282,7 @@ Tracker.Computation.prototype.stop = function () {
   }
 };
 
-Tracker.Computation.prototype._compute = function () {
+Tracker.Computation.prototype._compute = function() {
   var self = this;
   self.invalidated = false;
 
@@ -298,12 +298,12 @@ Tracker.Computation.prototype._compute = function () {
   }
 };
 
-Tracker.Computation.prototype._needsRecompute = function () {
+Tracker.Computation.prototype._needsRecompute = function() {
   var self = this;
-  return self.invalidated && ! self.stopped;
+  return self.invalidated && !self.stopped;
 };
 
-Tracker.Computation.prototype._recompute = function () {
+Tracker.Computation.prototype._recompute = function() {
   var self = this;
 
   self._recomputing = true;
@@ -336,7 +336,7 @@ Tracker.Computation.prototype._recompute = function () {
  * @class
  * @instanceName dependency
  */
-Tracker.Dependency = function () {
+Tracker.Dependency = function() {
   this._dependentsById = {};
 };
 
@@ -357,18 +357,17 @@ Tracker.Dependency = function () {
  * @param {Tracker.Computation} [fromComputation] An optional computation declared to depend on `dependency` instead of the current computation.
  * @returns {Boolean}
  */
-Tracker.Dependency.prototype.depend = function (computation) {
-  if (! computation) {
-    if (! Tracker.active)
-      return false;
+Tracker.Dependency.prototype.depend = function(computation) {
+  if (!computation) {
+    if (!Tracker.active) return false;
 
     computation = Tracker.currentComputation;
   }
   var self = this;
   var id = computation._id;
-  if (! (id in self._dependentsById)) {
+  if (!(id in self._dependentsById)) {
     self._dependentsById[id] = computation;
-    computation.onInvalidate(function () {
+    computation.onInvalidate(function() {
       delete self._dependentsById[id];
     });
     return true;
@@ -382,10 +381,9 @@ Tracker.Dependency.prototype.depend = function (computation) {
  * @summary Invalidate all dependent computations immediately and remove them as dependents.
  * @locus Client
  */
-Tracker.Dependency.prototype.changed = function () {
+Tracker.Dependency.prototype.changed = function() {
   var self = this;
-  for (var id in self._dependentsById)
-    self._dependentsById[id].invalidate();
+  for (var id in self._dependentsById) self._dependentsById[id].invalidate();
 };
 
 // http://docs.meteor.com/#dependency_hasdependents
@@ -395,10 +393,9 @@ Tracker.Dependency.prototype.changed = function () {
  * @locus Client
  * @returns {Boolean}
  */
-Tracker.Dependency.prototype.hasDependents = function () {
+Tracker.Dependency.prototype.hasDependents = function() {
   var self = this;
-  for(var id in self._dependentsById)
-    return true;
+  for (var id in self._dependentsById) return true;
   return false;
 };
 
@@ -408,15 +405,17 @@ Tracker.Dependency.prototype.hasDependents = function () {
  * @summary Process all reactive updates immediately and ensure that all invalidated computations are rerun.
  * @locus Client
  */
-Tracker.flush = function (options) {
-  Tracker._runFlush({ finishSynchronously: true,
-    throwFirstError: options && options._throwFirstError });
+Tracker.flush = function(options) {
+  Tracker._runFlush({
+    finishSynchronously: true,
+    throwFirstError: options && options._throwFirstError
+  });
 };
 
 // Run all pending computations and afterFlush callbacks.  If we were not called
 // directly via Tracker.flush, this may return before they're all done to allow
 // the event loop to run a little before continuing.
-Tracker._runFlush = function (options) {
+Tracker._runFlush = function(options) {
   // XXX What part of the comment below is still true? (We no longer
   // have Spark)
   //
@@ -428,24 +427,20 @@ Tracker._runFlush = function (options) {
   // any useful notion of a nested flush.
   //
   // https://app.asana.com/0/159908330244/385138233856
-  if (inFlush)
-    throw new Error("Can't call Tracker.flush while flushing");
+  if (inFlush) throw new Error("Can't call Tracker.flush while flushing");
 
-  if (inCompute)
-    throw new Error("Can't flush inside Tracker.autorun");
+  if (inCompute) throw new Error("Can't flush inside Tracker.autorun");
 
   options = options || {};
 
   inFlush = true;
   willFlush = true;
-  throwFirstError = !! options.throwFirstError;
+  throwFirstError = !!options.throwFirstError;
 
   var recomputedCount = 0;
   var finishedTry = false;
   try {
-    while (pendingComputations.length ||
-    afterFlushCallbacks.length) {
-
+    while (pendingComputations.length || afterFlushCallbacks.length) {
       // recompute all pending computations
       while (pendingComputations.length) {
         var comp = pendingComputations.shift();
@@ -454,7 +449,7 @@ Tracker._runFlush = function (options) {
           pendingComputations.unshift(comp);
         }
 
-        if (! options.finishSynchronously && ++recomputedCount > 1000) {
+        if (!options.finishSynchronously && ++recomputedCount > 1000) {
           finishedTry = true;
           return;
         }
@@ -473,7 +468,7 @@ Tracker._runFlush = function (options) {
     }
     finishedTry = true;
   } finally {
-    if (! finishedTry) {
+    if (!finishedTry) {
       // we're erroring due to throwFirstError being true.
       inFlush = false; // needed before calling `Tracker.flush()` again
       // finish flushing
@@ -489,7 +484,7 @@ Tracker._runFlush = function (options) {
       // required to finish synchronously, so we'd like to give the event loop a
       // chance. We should flush again soon.
       if (options.finishSynchronously) {
-        throw new Error("still have more to do?");  // shouldn't happen
+        throw new Error("still have more to do?"); // shouldn't happen
       }
       setTimeout(requireFlush, 10);
     }
@@ -523,18 +518,21 @@ Tracker._runFlush = function (options) {
  * thrown. Defaults to the error being logged to the console.
  * @returns {Tracker.Computation}
  */
-Tracker.autorun = function (f, options) {
-  if (typeof f !== 'function')
-    throw new Error('Tracker.autorun requires a function argument');
+Tracker.autorun = function(f, options) {
+  if (typeof f !== "function")
+    throw new Error("Tracker.autorun requires a function argument");
 
   options = options || {};
 
   constructingComputation = true;
   var c = new Tracker.Computation(
-    f, Tracker.currentComputation, options.onError);
+    f,
+    Tracker.currentComputation,
+    options.onError
+  );
 
   if (Tracker.active)
-    Tracker.onInvalidate(function () {
+    Tracker.onInvalidate(function() {
       c.stop();
     });
 
@@ -553,7 +551,7 @@ Tracker.autorun = function (f, options) {
  * @locus Client
  * @param {Function} func A function to call immediately.
  */
-Tracker.nonreactive = function (f) {
+Tracker.nonreactive = function(f) {
   var previous = Tracker.currentComputation;
   setCurrentComputation(null);
   try {
@@ -570,8 +568,8 @@ Tracker.nonreactive = function (f) {
  * @locus Client
  * @param {Function} callback A callback function that will be invoked as `func(c)`, where `c` is the computation on which the callback is registered.
  */
-Tracker.onInvalidate = function (f) {
-  if (! Tracker.active)
+Tracker.onInvalidate = function(f) {
+  if (!Tracker.active)
     throw new Error("Tracker.onInvalidate requires a currentComputation");
 
   Tracker.currentComputation.onInvalidate(f);
@@ -584,7 +582,7 @@ Tracker.onInvalidate = function (f) {
  * @locus Client
  * @param {Function} callback A function to call at flush time.
  */
-Tracker.afterFlush = function (f) {
+Tracker.afterFlush = function(f) {
   afterFlushCallbacks.push(f);
   requireFlush();
 };

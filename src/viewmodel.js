@@ -1,11 +1,11 @@
-import Tracker from './tracker';
-import H from './helper';
-import ReactiveArray from './reactive-array';
-import Property from './viewmodel-property';
-import parseBind from './parseBind';
-import presetBindings from './bindings'
-import { getSaveUrl, getLoadUrl } from './viewmodel-onUrl';
-const IS_NATIVE = 'IS_NATIVE';
+import Tracker from "./tracker";
+import H from "./helper";
+import ReactiveArray from "./reactive-array";
+import Property from "./viewmodel-property";
+import parseBind from "./parseBind";
+import presetBindings from "./bindings";
+import { getSaveUrl, getLoadUrl } from "./viewmodel-onUrl";
+const IS_NATIVE = "IS_NATIVE";
 let ReactDOM;
 const pendingShared = [];
 let savedOnUrl = [];
@@ -41,16 +41,15 @@ export default class ViewModel {
   static find(nameOrPredicate, predicateOrNothing, onlyOne = false) {
     const name = H.isString(nameOrPredicate) && nameOrPredicate;
     const predicate =
-      (H.isFunction(predicateOrNothing) && predicateOrNothing)
-      || (H.isFunction(nameOrPredicate) && nameOrPredicate);
+      (H.isFunction(predicateOrNothing) && predicateOrNothing) ||
+      (H.isFunction(nameOrPredicate) && nameOrPredicate);
     let collection;
     if (name) {
       if (ViewModel.components[name])
-        collection = {all: ViewModel.components[name]}
+        collection = { all: ViewModel.components[name] };
     } else {
-      collection = ViewModel.components
+      collection = ViewModel.components;
     }
-    ;
     if (!collection) return [];
     const result = [];
     for (let groupName in collection) {
@@ -86,11 +85,10 @@ export default class ViewModel {
 
   static share(obj) {
     pendingShared.push(obj);
-      
   }
   static loadPendingShared() {
     if (pendingShared.length === 0) return;
-    for(var obj of pendingShared) {
+    for (var obj of pendingShared) {
       for (let key in obj) {
         ViewModel.shared[key] = {};
         let value = obj[key];
@@ -111,30 +109,35 @@ export default class ViewModel {
     const dependency = new ViewModel.Tracker.Dependency();
     const oldChanged = dependency.changed.bind(dependency);
     const components = {};
-    if (component && !components[component.vmId]) components[component.vmId] = component;
-    dependency.changed = function () {
+    if (component && !components[component.vmId])
+      components[component.vmId] = component;
+    dependency.changed = function() {
       for (let key in components) {
         let c = components[key];
         c.vmChange();
       }
       oldChanged();
-    }
+    };
 
-    const initialValue = initial instanceof ViewModel.Property ? initial.defaultValue : initial;
+    const initialValue =
+      initial instanceof ViewModel.Property ? initial.defaultValue : initial;
     let _value = undefined;
-    const reset = function () {
+    const reset = function() {
       if (initialValue instanceof Array) {
         _value = new ReactiveArray(initialValue, dependency);
       } else {
         _value = initialValue;
       }
-    }
+    };
 
     reset();
 
-    const validator = initial instanceof ViewModel.Property ? initial : ViewModel.Property.validator(initial);
+    const validator =
+      initial instanceof ViewModel.Property
+        ? initial
+        : ViewModel.Property.validator(initial);
 
-    const changeValue = function (value) {
+    const changeValue = function(value) {
       if (validator.beforeUpdates.length) {
         validator.beforeValueUpdate(value, component);
       }
@@ -156,12 +159,12 @@ export default class ViewModel {
       return dependency.changed();
     };
 
-    const funProp = function (value) {
+    const funProp = function(value) {
       if (arguments.length) {
         if (_value !== value) {
           if (funProp.delay > 0) {
-            ViewModel.delay(funProp.delay, funProp.vmPropId, function () {
-              changeValue(value)
+            ViewModel.delay(funProp.delay, funProp.vmPropId, function() {
+              changeValue(value);
             });
           } else {
             changeValue(value);
@@ -177,22 +180,22 @@ export default class ViewModel {
       }
     };
     funProp.property = validator;
-    funProp.reset = function () {
+    funProp.reset = function() {
       reset();
       dependency.changed();
     };
-    funProp.depend = function () {
+    funProp.depend = function() {
       dependency.depend();
     };
-    funProp.changed = function () {
+    funProp.changed = function() {
       dependency.changed();
     };
     funProp.delay = 0;
     funProp.vmPropId = ViewModel.nextId();
-    funProp.addComponent = function (component) {
+    funProp.addComponent = function(component) {
       if (!components[component.vmId]) components[component.vmId] = component;
     };
-    Object.defineProperty(funProp, 'value', {
+    Object.defineProperty(funProp, "value", {
       get() {
         return _value;
       }
@@ -201,17 +204,19 @@ export default class ViewModel {
     const hasAsync = validator.hasAsync();
     let validationAsync = { count: 0 };
 
-    const getDone = hasAsync ? function (initialValue) {
-      validationAsync.count++;
-      return function (result) {
-        validationAsync.count--;
-        validationAsync.value = initialValue
-        validationAsync.result = result;
-        dependency.changed();
-      };
-    } : void 0;
+    const getDone = hasAsync
+      ? function(initialValue) {
+          validationAsync.count++;
+          return function(result) {
+            validationAsync.count--;
+            validationAsync.value = initialValue;
+            validationAsync.result = result;
+            dependency.changed();
+          };
+        }
+      : void 0;
 
-    funProp.valid = function (noAsync) {
+    funProp.valid = function(noAsync) {
       dependency.depend();
       if (noAsync && funProp.validating()) return false;
       const validSync = validator.verify(_value, component);
@@ -233,23 +238,23 @@ export default class ViewModel {
       }
     };
 
-    funProp.validMessage = function () {
+    funProp.validMessage = function() {
       return validator.validMessageValue;
     };
 
-    funProp.invalid = function (noAsync) {
+    funProp.invalid = function(noAsync) {
       return !this.valid(noAsync);
     };
 
-    funProp.invalidMessage = function () {
+    funProp.invalidMessage = function() {
       return validator.invalidMessageValue;
     };
 
-    funProp.validatingMessage = function () {
+    funProp.validatingMessage = function() {
       return validator.validatingMessageValue;
     };
 
-    funProp.validating = function () {
+    funProp.validating = function() {
       if (!hasAsync) {
         return false;
       }
@@ -257,41 +262,67 @@ export default class ViewModel {
       return !!validationAsync.count;
     };
 
-    funProp.message = function () {
+    funProp.message = function() {
       if (this.valid(true)) {
         return validator.validMessageValue;
       } else {
-        return funProp.validating() && validator.validatingMessageValue || validator.invalidMessageValue;
+        return (
+          (funProp.validating() && validator.validatingMessageValue) ||
+          validator.invalidMessageValue
+        );
       }
     };
 
     funProp.validator = validator;
 
     return funProp;
-  };
+  }
 
   static getValueRef(container, prop) {
-    return function (element) {
+    return function(element) {
       container.vmComputations.push(
-        ViewModel.Tracker.autorun(function () {
+        ViewModel.Tracker.autorun(function() {
           let value = container[prop]();
           value = value == null ? "" : value;
           if (element && value != element.value) {
             element.value = value;
           }
         })
-      )
-    }
+      );
+    };
   }
 
-  static getValue(container, repeatObject, repeatIndex, bindValue, viewmodel, funPropReserved) {
+  static getValue(
+    container,
+    repeatObject,
+    repeatIndex,
+    bindValue,
+    viewmodel,
+    funPropReserved
+  ) {
     let value;
     if (arguments.length < 5) viewmodel = container;
     bindValue = bindValue.trim();
-    const ref = H.firstToken(bindValue), token = ref[0], tokenIndex = ref[1];
+    const ref = H.firstToken(bindValue),
+      token = ref[0],
+      tokenIndex = ref[1];
     if (~tokenIndex) {
-      const left = () => ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, tokenIndex), viewmodel);
-      const right = () => ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(tokenIndex + token.length), viewmodel);
+      const left = () =>
+        ViewModel.getValue(
+          container,
+          repeatObject,
+          repeatIndex,
+          bindValue.substring(0, tokenIndex),
+          viewmodel
+        );
+      const right = () =>
+        ViewModel.getValue(
+          container,
+          repeatObject,
+          repeatIndex,
+          bindValue.substring(tokenIndex + token.length),
+          viewmodel
+        );
       value = H.tokens[token.trim()](left, right);
     } else if (bindValue === "this") {
       value = viewmodel;
@@ -302,22 +333,41 @@ export default class ViewModel {
     } else if (H.isQuoted(bindValue)) {
       value = H.removeQuotes(bindValue);
     } else {
-      const negate = bindValue.charAt(0) === '!';
+      const negate = bindValue.charAt(0) === "!";
       if (negate) {
         bindValue = bindValue.substring(1);
       }
       let dotIndex = bindValue.search(H.dotRegex);
-      if (~dotIndex && bindValue.charAt(dotIndex) !== '.') {
+      if (~dotIndex && bindValue.charAt(dotIndex) !== ".") {
         dotIndex += 1;
       }
-      const parenIndexStart = bindValue.indexOf('(');
+      const parenIndexStart = bindValue.indexOf("(");
       const parenIndexEnd = H.getMatchingParenIndex(bindValue, parenIndexStart);
-      const breakOnFirstDot = ~dotIndex && (!~parenIndexStart || dotIndex < parenIndexStart || dotIndex === (parenIndexEnd + 1));
+      const breakOnFirstDot =
+        ~dotIndex &&
+        (!~parenIndexStart ||
+          dotIndex < parenIndexStart ||
+          dotIndex === parenIndexEnd + 1);
       if (breakOnFirstDot) {
         const newBindValue = bindValue.substring(dotIndex + 1);
-        const newBindValueCheck = newBindValue.endsWith('()') ? newBindValue.substr(0, newBindValue.length - 2) : newBindValue;
-        const newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, dotIndex), viewmodel, ViewModel.funPropReserved[newBindValueCheck]);
-        value = ViewModel.getValue(newContainer, repeatObject, repeatIndex, newBindValue, viewmodel );
+        const newBindValueCheck = newBindValue.endsWith("()")
+          ? newBindValue.substr(0, newBindValue.length - 2)
+          : newBindValue;
+        const newContainer = ViewModel.getValue(
+          container,
+          repeatObject,
+          repeatIndex,
+          bindValue.substring(0, dotIndex),
+          viewmodel,
+          ViewModel.funPropReserved[newBindValueCheck]
+        );
+        value = ViewModel.getValue(
+          newContainer,
+          repeatObject,
+          repeatIndex,
+          newBindValue,
+          viewmodel
+        );
       } else {
         if (container == null) {
           value = undefined;
@@ -329,7 +379,7 @@ export default class ViewModel {
             name = Object.keys(parsed)[0];
             const second = parsed[name];
             if (second.length > 2) {
-              const ref1 = second.substr(1, second.length - 2).split(',');
+              const ref1 = second.substr(1, second.length - 2).split(",");
               for (let j = 0, len = ref1.length; j < len; j++) {
                 let arg = ref1[j].trim();
                 let newArg;
@@ -338,13 +388,25 @@ export default class ViewModel {
                 } else if (H.isQuoted(arg)) {
                   newArg = H.removeQuotes(arg);
                 } else {
-                  const neg = arg.charAt(0) === '!';
+                  const neg = arg.charAt(0) === "!";
                   if (neg) {
                     arg = arg.substring(1);
                   }
-                  arg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
+                  arg = ViewModel.getValue(
+                    viewmodel,
+                    repeatObject,
+                    repeatIndex,
+                    arg,
+                    viewmodel
+                  );
                   if (viewmodel && arg in viewmodel) {
-                    newArg = ViewModel.getValue(viewmodel, repeatObject, repeatIndex, arg, viewmodel);
+                    newArg = ViewModel.getValue(
+                      viewmodel,
+                      repeatObject,
+                      repeatIndex,
+                      arg,
+                      viewmodel
+                    );
                   } else {
                     newArg = arg;
                   }
@@ -358,14 +420,23 @@ export default class ViewModel {
           }
           const primitive = H.isPrimitive(name);
           if (container.vmId && !primitive && !container[name]) {
-            container[name] = ViewModel.prop('', viewmodel);
+            container[name] = ViewModel.prop("", viewmodel);
           }
-          if (!primitive && !((container != null) && ((container[name] != null) || H.isObject(container) || H.isString(container)))) {
-            const errorMsg = "Can't access '" + name + "' of '" + container + "'.";
+          if (
+            !primitive &&
+            !(
+              container != null &&
+              (container[name] != null ||
+                H.isObject(container) ||
+                H.isString(container))
+            )
+          ) {
+            const errorMsg =
+              "Can't access '" + name + "' of '" + container + "'.";
             console.error(errorMsg);
           } else if (primitive) {
             value = H.getPrimitive(name);
-          } else if (!(H.isString(container) || name in container)){
+          } else if (!(H.isString(container) || name in container)) {
             return undefined;
           } else {
             if (!funPropReserved && H.isFunction(container[name])) {
@@ -381,56 +452,103 @@ export default class ViewModel {
       }
     }
     return value;
-  };
-  
-  static getVmValueGetter(component, repeatObject, repeatIndex, bindValue) {
-    return function(optBindValue = bindValue){
-      return ViewModel.getValue(component, repeatObject, repeatIndex, optBindValue.toString(), component)
-    }
   }
-  
+
+  static getVmValueGetter(component, repeatObject, repeatIndex, bindValue) {
+    return function(optBindValue = bindValue) {
+      return ViewModel.getValue(
+        component,
+        repeatObject,
+        repeatIndex,
+        optBindValue.toString(),
+        component
+      );
+    };
+  }
+
   static getVmValueSetter(component, repeatObject, repeatIndex, bindValue) {
-    if (!H.isString(bindValue)){
-      return function() {}  
+    if (!H.isString(bindValue)) {
+      return function() {};
     }
-    if (~bindValue.indexOf(')', bindValue.length - 1)){
-      return function(){
-        return ViewModel.getValue(component, repeatObject, repeatIndex, bindValue);
-      }
+    if (~bindValue.indexOf(")", bindValue.length - 1)) {
+      return function() {
+        return ViewModel.getValue(
+          component,
+          repeatObject,
+          repeatIndex,
+          bindValue
+        );
+      };
     } else {
       return function(value) {
-        ViewModel.setValueFull(value, repeatObject, repeatIndex, component, bindValue, component);
-      }
+        ViewModel.setValueFull(
+          value,
+          repeatObject,
+          repeatIndex,
+          component,
+          bindValue,
+          component
+        );
+      };
     }
   }
 
-  static setValueFull(value, repeatObject, repeatIndex, container, bindValue, viewmodel, prevContainer = {}) {
+  static setValueFull(
+    value,
+    repeatObject,
+    repeatIndex,
+    container,
+    bindValue,
+    viewmodel,
+    prevContainer = {}
+  ) {
     var i, newBindValue, newContainer;
-    const ref = H.firstToken(bindValue), token = ref[0], tokenIndex = ref[1];
+    const ref = H.firstToken(bindValue),
+      token = ref[0],
+      tokenIndex = ref[1];
     if (H.dotRegex.test(bindValue) || ~tokenIndex) {
       if (~tokenIndex) {
-        ViewModel.getValue(container, repeatObject, repeatIndex, bindValue, viewmodel);
+        ViewModel.getValue(
+          container,
+          repeatObject,
+          repeatIndex,
+          bindValue,
+          viewmodel
+        );
       } else {
         i = bindValue.search(H.dotRegex);
-        if (bindValue.charAt(i) !== '.') {
+        if (bindValue.charAt(i) !== ".") {
           i += 1;
         }
-        newContainer = ViewModel.getValue(container, repeatObject, repeatIndex, bindValue.substring(0, i), viewmodel);
+        newContainer = ViewModel.getValue(
+          container,
+          repeatObject,
+          repeatIndex,
+          bindValue.substring(0, i),
+          viewmodel
+        );
         newBindValue = bindValue.substring(i + 1);
         const thisContainer = {
           container,
           prevContainer
-        }
-        ViewModel.setValueFull(value, repeatObject, repeatIndex, newContainer, newBindValue, viewmodel, thisContainer);        
+        };
+        ViewModel.setValueFull(
+          value,
+          repeatObject,
+          repeatIndex,
+          newContainer,
+          newBindValue,
+          viewmodel,
+          thisContainer
+        );
       }
-
     } else {
       if (H.isFunction(container[bindValue])) {
         container[bindValue](value);
       } else {
         container[bindValue] = value;
         let cont = prevContainer;
-        while(cont && cont.container) {
+        while (cont && cont.container) {
           if (cont.container.vmId) {
             cont.container.vmChange();
             break;
@@ -440,86 +558,138 @@ export default class ViewModel {
         }
       }
     }
-  };
+  }
 
   static setValue(viewmodel, repeatObject, repeatIndex, bindValue) {
     if (!H.isString(bindValue)) {
-      return (function() {});
+      return function() {};
     }
-    if (~bindValue.indexOf(')', bindValue.length - 1)) {
+    if (~bindValue.indexOf(")", bindValue.length - 1)) {
       return function() {
-        return ViewModel.getValue(viewmodel, repeatObject, repeatIndex, bindValue, viewmodel);
+        return ViewModel.getValue(
+          viewmodel,
+          repeatObject,
+          repeatIndex,
+          bindValue,
+          viewmodel
+        );
       };
     } else {
       return function(value) {
-        return ViewModel.setValueFull(value, repeatObject, repeatIndex, viewmodel, bindValue, viewmodel);
+        return ViewModel.setValueFull(
+          value,
+          repeatObject,
+          repeatIndex,
+          viewmodel,
+          bindValue,
+          viewmodel
+        );
       };
     }
-  };
+  }
 
-  static getClass(component, repeatObject, repeatIndex, initialClass, bindText) {
+  static getClass(
+    component,
+    repeatObject,
+    repeatIndex,
+    initialClass,
+    bindText
+  ) {
     const cssClass = [initialClass];
-    if (bindText.trim()[0] === '{') {
+    if (bindText.trim()[0] === "{") {
       const cssObj = ViewModel.parseBind(bindText);
-      for(let key in cssObj) {
+      for (let key in cssObj) {
         let value = cssObj[key];
         if (ViewModel.getValue(component, repeatObject, repeatIndex, value)) {
-          cssClass.push( key );
+          cssClass.push(key);
         }
       }
     } else {
-      cssClass.push( ViewModel.getValue(component, repeatObject, repeatIndex, bindText) );
+      cssClass.push(
+        ViewModel.getValue(component, repeatObject, repeatIndex, bindText)
+      );
     }
-    return cssClass.join(' ');
-  };
+    return cssClass.join(" ");
+  }
 
-  static getDisabled(component, repeatObject, repeatIndex, isEnabled, bindText) {
-    const value = ViewModel.getValue(component, repeatObject, repeatIndex, bindText);
+  static getDisabled(
+    component,
+    repeatObject,
+    repeatIndex,
+    isEnabled,
+    bindText
+  ) {
+    const value = ViewModel.getValue(
+      component,
+      repeatObject,
+      repeatIndex,
+      bindText
+    );
     return !!(isEnabled ? !value : value);
-  };
+  }
 
-  static getStyle(component, repeatObject, repeatIndex, initialStyle, bindText) {
-    let initialStyles; 
+  static getStyle(
+    component,
+    repeatObject,
+    repeatIndex,
+    initialStyle,
+    bindText
+  ) {
+    let initialStyles;
     if (!!initialStyle) {
       initialStyles = ViewModel.parseBind(initialStyle.split(";").join(","));
     }
 
     let objectStyles;
-    if (bindText.trim()[0] === '[') {
+    if (bindText.trim()[0] === "[") {
       objectStyles = {};
       const itemsString = bindText.substr(1, bindText.length - 2);
-      const items = itemsString.split(',');
-      for(let item of items) {
-        const vmValue = ViewModel.getValue(component, repeatObject, repeatIndex, item);
+      const items = itemsString.split(",");
+      for (let item of items) {
+        const vmValue = ViewModel.getValue(
+          component,
+          repeatObject,
+          repeatIndex,
+          item
+        );
         let bag = H.isString(vmValue) ? ViewModel.parseBind(vmValue) : vmValue;
         for (let key in bag) {
           const value = bag[key];
           objectStyles[key] = value;
         }
       }
-    } else if (bindText.trim()[0] === '{') {
+    } else if (bindText.trim()[0] === "{") {
       objectStyles = {};
       const preObjectStyles = ViewModel.parseBind(bindText);
       for (let key in preObjectStyles) {
         let value = preObjectStyles[key];
-        objectStyles[key] = ViewModel.getValue(component, repeatObject, repeatIndex, value);
+        objectStyles[key] = ViewModel.getValue(
+          component,
+          repeatObject,
+          repeatIndex,
+          value
+        );
       }
     } else {
-      const vmValue = ViewModel.getValue(component, repeatObject, repeatIndex, bindText)
+      const vmValue = ViewModel.getValue(
+        component,
+        repeatObject,
+        repeatIndex,
+        bindText
+      );
       if (H.isString(vmValue)) {
         const newValue = vmValue.split(";").join(",");
         objectStyles = ViewModel.parseBind(newValue);
       } else {
         objectStyles = vmValue;
       }
-
     }
 
     const styles = {};
     H.addStyles(styles, initialStyles);
     H.addStyles(styles, objectStyles);
     return styles;
-  };
+  }
 
   static parseBind(str) {
     return parseBind(str);
@@ -535,7 +705,11 @@ export default class ViewModel {
             if (value.vmPropId) {
               container[key].addComponent(component);
             }
-          } else if (container[key] && container[key].vmPropId && H.isFunction(container[key])) {
+          } else if (
+            container[key] &&
+            container[key].vmPropId &&
+            H.isFunction(container[key])
+          ) {
             container[key](value);
           } else {
             container[key] = ViewModel.prop(value, component);
@@ -550,7 +724,7 @@ export default class ViewModel {
     } else {
       loadObj(toLoad);
     }
-  };
+  }
 
   // Special thanks to @dino and @faceyspacey for this implementation
   // shamelessly stolen from their TrackerReact project
@@ -575,15 +749,15 @@ export default class ViewModel {
     return retValue;
   }
 
-  static prepareComponentWillMount(component){
+  static prepareComponentWillMount(component) {
     const old = component.componentWillMount;
     component.componentWillMount = function() {
-      let parent = this.props['data-vm-parent'];
+      let parent = this.props["data-vm-parent"];
       if (parent && parent.children) {
         parent.children().push(this);
       }
       this.parent = function() {
-        parent = this.props['data-vm-parent']
+        parent = this.props["data-vm-parent"];
         if (parent && parent.vmId) {
           this.vmDependsOnParent = true;
           return parent;
@@ -593,7 +767,7 @@ export default class ViewModel {
       };
       this.load(this.props);
 
-      const bind = this.props['data-bind'];
+      const bind = this.props["data-bind"];
       if (bind) {
         var bindObject = parseBind(bind);
         if (bindObject.ref) {
@@ -601,17 +775,17 @@ export default class ViewModel {
         }
       }
 
-      for(let fun of component.vmCreated){
-        fun.call(component)
+      for (let fun of component.vmCreated) {
+        fun.call(component);
       }
 
       let oldRender = this.render;
       this.render = () => ViewModel.autorunOnce(oldRender, this);
-      if (old) old.call(component)
-    }
+      if (old) old.call(component);
+    };
   }
 
-  static prepareComponentDidMount(component){
+  static prepareComponentDidMount(component) {
     const old = component.componentDidMount;
     const componentDidMount = function() {
       component.vmMounted = true;
@@ -620,10 +794,12 @@ export default class ViewModel {
         setTimeout(() => fun.call(component));
       }
 
-      for(let autorun of component.vmAutorun) {
-        component.vmComputations.push( ViewModel.Tracker.autorun(function(c) {
-          autorun.call(component, c);
-        }));
+      for (let autorun of component.vmAutorun) {
+        component.vmComputations.push(
+          ViewModel.Tracker.autorun(function(c) {
+            autorun.call(component, c);
+          })
+        );
       }
 
       if (old) old.call(component);
@@ -636,11 +812,10 @@ export default class ViewModel {
           return function() {
             ViewModel.loadUrl(component);
             ViewModel.saveUrl(component);
-          }
-
+          };
         };
         const toSave = saveOnUrl(component);
-        if(savedOnUrl) {
+        if (savedOnUrl) {
           savedOnUrl.push(toSave);
         } else {
           toSave();
@@ -648,7 +823,9 @@ export default class ViewModel {
       }
 
       if (savedOnUrl && !component.parent()) {
-        savedOnUrl.forEach(function(fun) { fun(); });
+        savedOnUrl.forEach(function(fun) {
+          fun();
+        });
         savedOnUrl = null;
       }
 
@@ -659,47 +836,52 @@ export default class ViewModel {
     component.componentDidMount = componentDidMount;
   }
 
-  static prepareComponentWillUnmount(component){
+  static prepareComponentWillUnmount(component) {
     const old = component.componentWillUnmount;
     component.componentWillUnmount = function() {
-
-      for(let fun of component.vmDestroyed){
-        fun.call(component)
+      for (let fun of component.vmDestroyed) {
+        fun.call(component);
       }
       this.vmComputations.forEach(c => c.stop());
       this.vmRenderComputation.stop();
       delete ViewModel.components[component.vmComponentName][component.vmId];
       if (!component.parent()) {
-        for(var i = ViewModel.rootComponents.length - 1; i >= 0; i--) {
-          if(ViewModel.rootComponents[i].vmId === component.vmId) {
+        for (var i = ViewModel.rootComponents.length - 1; i >= 0; i--) {
+          if (ViewModel.rootComponents[i].vmId === component.vmId) {
             ViewModel.rootComponents.splice(i, 1);
             break;
           }
         }
       }
 
-      if (old) old.call(component)
+      if (old) old.call(component);
       component.vmMounted = false;
-    }
+    };
   }
 
-  static prepareComponentDidUpdate(component){
+  static prepareComponentDidUpdate(component) {
     const old = component.componentDidUpdate;
     component.componentDidUpdate = function() {
       component.vmChanged = false;
-      if (old) old.call(component)
-    }
+      if (old) old.call(component);
+    };
   }
-  
+
   static prepareShouldComponentUpdate(component) {
-    if (! component.shouldComponentUpdate) {
+    if (!component.shouldComponentUpdate) {
       component.shouldComponentUpdate = function() {
         const parent = component.parent();
-        if (component.vmChanged || ( component.vmDependsOnParent && parent.vmChanged )) {
-
-          if(parent && !parent.vmChanged && !component.hasOwnProperty('vmUpdateParent')) {
-            for(let ref in parent) {
-              if (parent[ref] === component ){
+        if (
+          component.vmChanged ||
+          (component.vmDependsOnParent && parent.vmChanged)
+        ) {
+          if (
+            parent &&
+            !parent.vmChanged &&
+            !component.hasOwnProperty("vmUpdateParent")
+          ) {
+            for (let ref in parent) {
+              if (parent[ref] === component) {
                 component.vmUpdateParent = true;
                 break;
               }
@@ -715,9 +897,8 @@ export default class ViewModel {
           return true;
         }
 
-
         return false;
-      }
+      };
     }
   }
 
@@ -725,14 +906,14 @@ export default class ViewModel {
     const old = component.componentWillReceiveProps;
     component.componentWillReceiveProps = function(props) {
       this.load(props);
-      if (old) old.call(component)
-    }
+      if (old) old.call(component);
+    };
   }
 
   static prepareMethodsAndProperties(component, initial) {
-    for(let prop in initial) {
+    for (let prop in initial) {
       if (ViewModel.reactKeyword[prop]) continue;
-      if(typeof initial[prop] === 'function') {
+      if (typeof initial[prop] === "function") {
         component[prop] = initial[prop].bind(component);
         component[prop].vmIsFunc = true;
       } else {
@@ -747,26 +928,33 @@ export default class ViewModel {
     dependency.changed = function() {
       component.vmChange();
       oldChanged();
-    }
+    };
     const array = new ReactiveArray([], dependency);
     const funProp = function(search) {
       array.depend();
       if (arguments.length) {
-        const predicate = H.isString(search) ? function(vm) { return vm.vmComponentName === search; } : search;
+        const predicate = H.isString(search)
+          ? function(vm) {
+              return vm.vmComponentName === search;
+            }
+          : search;
         return array.filter(predicate);
       } else {
         return array;
       }
-    }
+    };
     component.children = funProp;
   }
 
   static prepareData(component) {
-
-    component.data = function (fields = []) {
-      const js ={};
+    component.data = function(fields = []) {
+      const js = {};
       for (let prop in component) {
-        if (component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
+        if (
+          component[prop] &&
+          component[prop].vmPropId &&
+          (fields.length === 0 || ~fields.indexOf(prop))
+        ) {
           component[prop].depend();
           let value = component[prop].value;
           if (value instanceof Array) {
@@ -777,27 +965,34 @@ export default class ViewModel {
         }
       }
       return js;
-    }
+    };
   }
 
   static prepareValidations(component) {
-
     component.valid = function(fields = []) {
-      for(let prop in component){
-        if(component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
-          if(!component[prop].valid(true)){
+      for (let prop in component) {
+        if (
+          component[prop] &&
+          component[prop].vmPropId &&
+          (fields.length === 0 || ~fields.indexOf(prop))
+        ) {
+          if (!component[prop].valid(true)) {
             return false;
           }
         }
       }
       return true;
-    }
+    };
 
     component.validMessages = function(fields = []) {
       const messages = [];
-      for(let prop in component){
-        if(component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
-          if(component[prop].valid(true)){
+      for (let prop in component) {
+        if (
+          component[prop] &&
+          component[prop].vmPropId &&
+          (fields.length === 0 || ~fields.indexOf(prop))
+        ) {
+          if (component[prop].valid(true)) {
             let message = component[prop].validator.validMessageValue;
             if (message) {
               messages.push(message);
@@ -806,18 +1001,25 @@ export default class ViewModel {
         }
       }
       return messages;
-    }
+    };
 
     component.invalid = function(fields = []) {
       return !component.valid(fields);
-    }
+    };
 
     component.invalidMessages = function(fields = []) {
       const messages = [];
-      for(let prop in component){
-        if(component[prop] && component[prop].vmPropId && (fields.length === 0 || ~fields.indexOf(prop))) {
-          if(!component[prop].valid(true)){
-            let message = component[prop].validating() && component[prop].validator.validatingMessageValue || component[prop].validator.invalidMessageValue;
+      for (let prop in component) {
+        if (
+          component[prop] &&
+          component[prop].vmPropId &&
+          (fields.length === 0 || ~fields.indexOf(prop))
+        ) {
+          if (!component[prop].valid(true)) {
+            let message =
+              (component[prop].validating() &&
+                component[prop].validator.validatingMessageValue) ||
+              component[prop].validator.invalidMessageValue;
             if (message) {
               messages.push(message);
             }
@@ -825,97 +1027,105 @@ export default class ViewModel {
         }
       }
       return messages;
-    }
+    };
   }
 
   static prepareReset(component) {
-
-    component.reset = function () {
+    component.reset = function() {
       for (let prop in component) {
-        if (component[prop] && component[prop].vmPropId ) {
+        if (component[prop] && component[prop].vmPropId) {
           component[prop].reset();
         }
       }
-    }
+    };
   }
 
   static loadMixinShare(toLoad, collection, component, bag) {
-    if (! toLoad) return;
+    if (!toLoad) return;
     if (toLoad instanceof Array) {
-      for(let element of toLoad) {
+      for (let element of toLoad) {
         if (H.isString(element)) {
-          component.load( collection[element] );
+          component.load(collection[element]);
           bag[element] = null;
         } else {
-          ViewModel.loadMixinShare( element, collection, component, bag );
+          ViewModel.loadMixinShare(element, collection, component, bag);
         }
       }
     } else if (H.isString(toLoad)) {
-      component.load( collection[toLoad] );
+      component.load(collection[toLoad]);
       bag[toLoad] = null;
     } else {
       for (let ref in toLoad) {
         const container = {};
         const mixshare = toLoad[ref];
-        if ( mixshare instanceof Array ) {
-          for(let item of mixshare){
-            ViewModel.load( collection[item], container, component );
+        if (mixshare instanceof Array) {
+          for (let item of mixshare) {
+            ViewModel.load(collection[item], container, component);
             bag[item] = ref;
           }
         } else {
-          ViewModel.load( collection[mixshare], container, component );
+          ViewModel.load(collection[mixshare], container, component);
           bag[mixshare] = ref;
         }
         component[ref] = container;
-        
       }
     }
   }
 
   static prepareLoad(component) {
     component.load = function(toLoad) {
-      if (! toLoad) return;
+      if (!toLoad) return;
 
       // Signals
       for (let signal of ViewModel.signalsToLoad(toLoad.signal, component)) {
-        component.load( signal );
-        component.vmCreated.push( signal.onCreated );
-        component.vmDestroyed.push( signal.onDestroyed );
+        component.load(signal);
+        component.vmCreated.push(signal.onCreated);
+        component.vmDestroyed.push(signal.onDestroyed);
       }
 
       // Shared
       ViewModel.loadPendingShared();
-      ViewModel.loadMixinShare( toLoad.share, ViewModel.shared, component, component.vmShares );
+      ViewModel.loadMixinShare(
+        toLoad.share,
+        ViewModel.shared,
+        component,
+        component.vmShares
+      );
 
       // Mixins
-      ViewModel.loadMixinShare( toLoad.mixin, ViewModel.mixins, component, component.vmMixins );
+      ViewModel.loadMixinShare(
+        toLoad.mixin,
+        ViewModel.mixins,
+        component,
+        component.vmMixins
+      );
 
       // Whatever is in 'load' is loaded before direct properties
-      component.load( toLoad.load )
+      component.load(toLoad.load);
 
       // Load the object into the component
       // (direct properties)
-      ViewModel.load(toLoad, component)
+      ViewModel.load(toLoad, component);
 
       const hooks = {
-        created: 'vmCreated',
-        rendered: 'vmRendered',
-        destroyed: 'vmDestroyed',
-        autorun: 'vmAutorun'
-      }
+        created: "vmCreated",
+        rendered: "vmRendered",
+        destroyed: "vmDestroyed",
+        autorun: "vmAutorun"
+      };
 
-      for(let hook in hooks){
+      for (let hook in hooks) {
         if (!toLoad[hook]) continue;
         let vmProp = hooks[hook];
         if (toLoad[hook] instanceof Array) {
-          for(let item of toLoad[hook]) {
-            component[vmProp].push(item)
+          for (let item of toLoad[hook]) {
+            component[vmProp].push(item);
           }
         } else {
-          component[vmProp].push(toLoad[hook])
+          component[vmProp].push(toLoad[hook]);
         }
       }
-    }
+    };
   }
 
   static prepareComponent(componentName, component, initial) {
@@ -931,7 +1141,7 @@ export default class ViewModel {
     component.vmSignals = {};
     const getHasComposition = function(bag) {
       return function(name, prop) {
-        return bag.hasOwnProperty(name) && (!bag[name] || bag[name] === prop );
+        return bag.hasOwnProperty(name) && (!bag[name] || bag[name] === prop);
       };
     };
     component.hasMixin = getHasComposition(component.vmMixins);
@@ -945,14 +1155,14 @@ export default class ViewModel {
           component.setState({});
         }
       }
-    }
+    };
 
     ViewModel.prepareLoad(component);
-    for(let global of ViewModel.globals) {
+    for (let global of ViewModel.globals) {
       component.load(global);
     }
     component.load(initial);
-    component.child = (filter) => component.children(filter)[0];
+    component.child = filter => component.children(filter)[0];
     ViewModel.prepareChildren(component);
     ViewModel.prepareMethodsAndProperties(component, initial);
     ViewModel.prepareComponentWillMount(component);
@@ -964,8 +1174,6 @@ export default class ViewModel {
     ViewModel.prepareValidations(component);
     ViewModel.prepareData(component);
     ViewModel.prepareReset(component);
-
-
   }
 
   static addBinding(binding) {
@@ -977,7 +1185,7 @@ export default class ViewModel {
     }
     ViewModel.bindings[binding.name].push(binding);
   }
-  
+
   static bindElement(component, repeatObject, repeatIndex, bindingText) {
     return function(element) {
       if (!element || element.vmBound) return;
@@ -988,62 +1196,96 @@ export default class ViewModel {
       for (let bindName in bindObject) {
         if (ViewModel.compiledBindings[bindName]) continue;
         let bindValue = bindObject[bindName];
-        if (~bindName.indexOf(' ')) {
-          for (let bindNameSingle of bindName.split(' ')) {
-            ViewModel.bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindNameSingle, bindId);
+        if (~bindName.indexOf(" ")) {
+          for (let bindNameSingle of bindName.split(" ")) {
+            ViewModel.bindSingle(
+              component,
+              repeatObject,
+              repeatIndex,
+              bindObject,
+              element,
+              bindNameSingle,
+              bindId
+            );
           }
         } else {
-          ViewModel.bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId);
+          ViewModel.bindSingle(
+            component,
+            repeatObject,
+            repeatIndex,
+            bindObject,
+            element,
+            bindName,
+            bindId
+          );
         }
       }
-    }
+    };
   }
 
-  static bindSingle(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId){
-    const bindArg = ViewModel.getBindArgument(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId);
+  static bindSingle(
+    component,
+    repeatObject,
+    repeatIndex,
+    bindObject,
+    element,
+    bindName,
+    bindId
+  ) {
+    const bindArg = ViewModel.getBindArgument(
+      component,
+      repeatObject,
+      repeatIndex,
+      bindObject,
+      element,
+      bindName,
+      bindId
+    );
     const binding = ViewModel.getBinding(bindName, bindArg);
     if (!binding) return;
 
     if (binding.bind) {
       binding.bind(bindArg);
     }
-    if (binding.autorun){
-      bindArg.autorun( binding.autorun );
+    if (binding.autorun) {
+      bindArg.autorun(binding.autorun);
     }
 
-    if (binding.events){
+    if (binding.events) {
       let func = function(eventName, eventFunc) {
-        const eventListener = function (event) {
-          eventFunc(bindArg, event)
-        }
+        const eventListener = function(event) {
+          eventFunc(bindArg, event);
+        };
 
         bindArg.element.addEventListener(eventName, eventListener);
         bindArg.component.vmDestroyed.push(() => {
-          bindArg.element.removeEventListener(eventName, eventListener)
+          bindArg.element.removeEventListener(eventName, eventListener);
         });
-      }
+      };
       for (let eventName in binding.events) {
         let eventFunc = binding.events[eventName];
-        if (~eventName.indexOf(' ')) {
-          for(let event of eventName.split(' ')){
+        if (~eventName.indexOf(" ")) {
+          for (let event of eventName.split(" ")) {
             func(event, eventFunc);
           }
         } else {
           func(eventName, eventFunc);
         }
-
       }
     }
-
   }
 
   static getComponentPath(component) {
     let path = component.vmComponentName;
     const parent = component.parent();
     if (parent) {
-      path = ViewModel.getComponentPath(parent) + component.vmPathToParent + '/' + path ;
+      path =
+        ViewModel.getComponentPath(parent) +
+        component.vmPathToParent +
+        "/" +
+        path;
     } else {
-      path = component.vmPathToParent + '/' + path ;
+      path = component.vmPathToParent + "/" + path;
     }
 
     return path;
@@ -1051,24 +1293,23 @@ export default class ViewModel {
 
   static getPathToRoot(component) {
     if (!ReactDOM) {
-      ReactDOM = navigator.project === 'ReactNative' ? IS_NATIVE : require('react-dom');
+      ReactDOM =
+        navigator.project === "ReactNative" ? IS_NATIVE : require("react-dom");
     }
 
-    if (ReactDOM === IS_NATIVE){
-      return '/';
+    if (ReactDOM === IS_NATIVE) {
+      return "/";
     } else {
       var difference, i, parentPath, viewmodelPath;
       return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
     }
-
-
-  };
+  }
 
   static getPathToParent(component) {
     var difference, i, parentPath, viewmodelPath;
     const parent = component.parent();
     if (!parent) {
-      return '/';
+      return "/";
     }
     viewmodelPath = component.vmPathToRoot;
     if (!parent.vmPathToRoot) {
@@ -1077,17 +1318,22 @@ export default class ViewModel {
     parentPath = component.parent().vmPathToRoot;
 
     i = 0;
-    while (parentPath[i] === viewmodelPath[i] && (parentPath[i] != null)) {
+    while (parentPath[i] === viewmodelPath[i] && parentPath[i] != null) {
       i++;
     }
     difference = viewmodelPath.substr(i);
     return difference;
-  };
+  }
 
   static getElementPath(element) {
     var i, ix, sibling, siblings;
-    if (!element || !element.parentNode || element.tagName === 'HTML' || element === document.body) {
-      return '/';
+    if (
+      !element ||
+      !element.parentNode ||
+      element.tagName === "HTML" ||
+      element === document.body
+    ) {
+      return "/";
     }
     ix = 0;
     siblings = element.parentNode.childNodes;
@@ -1095,55 +1341,99 @@ export default class ViewModel {
     while (i < siblings.length) {
       sibling = siblings[i];
       if (sibling === element) {
-        return ViewModel.getElementPath(element.parentNode) + '/' + element.tagName + '[' + (ix + 1) + ']';
+        return (
+          ViewModel.getElementPath(element.parentNode) +
+          "/" +
+          element.tagName +
+          "[" +
+          (ix + 1) +
+          "]"
+        );
       }
       if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
         ix++;
       }
       i++;
     }
-  };
-  
+  }
+
   static getBinding(bindName, bindArg) {
     let binding = null;
     let bindingArray = ViewModel.bindings[bindName];
     if (bindingArray) {
-      if (bindingArray.length === 1 && !(bindingArray[0].bindIf || bindingArray[0].selector)) {
+      if (
+        bindingArray.length === 1 &&
+        !(bindingArray[0].bindIf || bindingArray[0].selector)
+      ) {
         binding = bindingArray[0];
       } else {
         binding = bindingArray
-          .sort(function(a,b) { b.priority - a.priority })
-          .find(function(b){
-            return !( (b.bindIf && !b.bindIf(bindArg)) || (b.selector && !H.elementMatch(bindArg.element, b.selector)) );
+          .sort(function(a, b) {
+            b.priority - a.priority;
+          })
+          .find(function(b) {
+            return !(
+              (b.bindIf && !b.bindIf(bindArg)) ||
+              (b.selector && !H.elementMatch(bindArg.element, b.selector))
+            );
           });
       }
     }
-    return binding || ViewModel.getBinding('default', bindArg);
+    return binding || ViewModel.getBinding("default", bindArg);
   }
 
-  static getBindArgument(component, repeatObject, repeatIndex, bindObject, element, bindName, bindId){
+  static getBindArgument(
+    component,
+    repeatObject,
+    repeatIndex,
+    bindObject,
+    element,
+    bindName,
+    bindId
+  ) {
     const getDelayedSetter = function(bindArg, setter) {
       if (bindArg.elementBind.throttle) {
         return function(...args) {
-          ViewModel.delay( bindArg.getVmValue(bindArg.elementBind.throttle), bindId, function(){ setter(...args) } );
-        }
+          ViewModel.delay(
+            bindArg.getVmValue(bindArg.elementBind.throttle),
+            bindId,
+            function() {
+              setter(...args);
+            }
+          );
+        };
       } else {
         return setter;
       }
-    }
+    };
     const bindArg = {
-      autorun: function(f){
-        let fun = function(c) { f(bindArg, c) };
-        component.vmComputations.push( ViewModel.Tracker.autorun(fun) );
+      autorun: function(f) {
+        let fun = function(c) {
+          f(bindArg, c);
+        };
+        component.vmComputations.push(ViewModel.Tracker.autorun(fun));
       },
       component: component,
       element: element,
       elementBind: bindObject,
       bindName: bindName,
       bindValue: bindObject[bindName],
-      getVmValue: ViewModel.getVmValueGetter(component, repeatObject, repeatIndex, bindObject[bindName])
-    }
-    bindArg.setVmValue = getDelayedSetter( bindArg, ViewModel.getVmValueSetter(component, repeatObject, repeatIndex, bindObject[bindName]) );
+      getVmValue: ViewModel.getVmValueGetter(
+        component,
+        repeatObject,
+        repeatIndex,
+        bindObject[bindName]
+      )
+    };
+    bindArg.setVmValue = getDelayedSetter(
+      bindArg,
+      ViewModel.getVmValueSetter(
+        component,
+        repeatObject,
+        repeatIndex,
+        bindObject[bindName]
+      )
+    );
     return bindArg;
   }
 
@@ -1182,32 +1472,36 @@ export default class ViewModel {
     const all = [];
     if (containerName) {
       const signalObject = ViewModel.signals[containerName];
-      for(let key in signalObject) {
+      for (let key in signalObject) {
         let value = signalObject[key];
-        (
-          function(key, value) {
-            const single = {};
-            single[key] = {};
-            const transform = value.transform || function(e){ return e; };
-            const boundProp = `_${key}_Bound`;
-            single.onCreated = function() {
-              const vmProp = container[key];
-              const func = function(e) {
-                vmProp(transform(e));
-              };
-              const funcToUse = value.throttle ? ViewModel.throttle(func, value.throttle) : func;
-              container[boundProp] = funcToUse;
-              value.target.addEventListener(value.event, this[boundProp]);
-              var event = document.createEvent('HTMLEvents');
-              event.initEvent(value.event, true, false);
-              value.target.dispatchEvent(event);
-            }
-            single.onDestroyed = function() {
-              value.target.removeEventListener( value.event, this[boundProp] );
-            }
-            all.push(single);
-          }
-        )(key, value);
+        (function(key, value) {
+          const single = {};
+          single[key] = {};
+          const transform =
+            value.transform ||
+            function(e) {
+              return e;
+            };
+          const boundProp = `_${key}_Bound`;
+          single.onCreated = function() {
+            const vmProp = container[key];
+            const func = function(e) {
+              vmProp(transform(e));
+            };
+            const funcToUse = value.throttle
+              ? ViewModel.throttle(func, value.throttle)
+              : func;
+            container[boundProp] = funcToUse;
+            value.target.addEventListener(value.event, this[boundProp]);
+            var event = document.createEvent("HTMLEvents");
+            event.initEvent(value.event, true, false);
+            value.target.dispatchEvent(event);
+          };
+          single.onDestroyed = function() {
+            value.target.removeEventListener(value.event, this[boundProp]);
+          };
+          all.push(single);
+        })(key, value);
       }
     }
     return all;
@@ -1216,8 +1510,8 @@ export default class ViewModel {
   static signalsToLoad(containerName, container) {
     if (containerName instanceof Array) {
       const signals = [];
-      for(let name of containerName) {
-        for(let signal of ViewModel.signalContainer(name, container)) {
+      for (let name of containerName) {
+        for (let signal of ViewModel.signalContainer(name, container)) {
           signals.push(signal);
         }
       }
@@ -1229,7 +1523,7 @@ export default class ViewModel {
 
   static loadComponent(comp) {
     const vm = {};
-    ViewModel.prepareComponent( 'TestComponent', vm, null);
+    ViewModel.prepareComponent("TestComponent", vm, null);
     vm.load(comp);
     vm.reset();
     return vm;
@@ -1273,8 +1567,8 @@ ViewModel.reserved = {
   child: 1,
   reset: 1,
   data: 1,
-  'data-vm-parent': 1,
-  'data-bind': 1
+  "data-vm-parent": 1,
+  "data-bind": 1
 };
 
 ViewModel.reactKeyword = {
@@ -1283,10 +1577,10 @@ ViewModel.reactKeyword = {
   constructor: 1,
   forceUpdate: 1,
   setState: 1,
-  componentWillReceiveProps : 1,
-  shouldComponentUpdate : 1,
-  componentWillUpdate : 1,
-  componentDidUpdate : 1,
+  componentWillReceiveProps: 1,
+  shouldComponentUpdate: 1,
+  componentWillUpdate: 1,
+  componentDidUpdate: 1,
   componentWillMount: 1,
   componentDidMount: 1,
   componentWillUnmount: 1
@@ -1307,12 +1601,12 @@ ViewModel.funPropReserved = {
 ViewModel.compiledBindings = {
   text: 1,
   html: 1,
-  'class': 1,
-  'if': 1,
-  'style': 1,
+  class: 1,
+  if: 1,
+  style: 1,
   repeat: 1,
   key: 1
-}
+};
 
 ViewModel.globals = [];
 ViewModel.components = {};
@@ -1322,14 +1616,18 @@ ViewModel.signals = {};
 ViewModel.bindings = {};
 
 Object.defineProperties(ViewModel, {
-  "property": { get: function () { return new Property; } }
+  property: {
+    get: function() {
+      return new Property();
+    }
+  }
 });
 
 ViewModel.Property = Property;
 ViewModel.saveUrl = getSaveUrl(ViewModel);
 ViewModel.loadUrl = getLoadUrl(ViewModel);
 
-for(let binding of presetBindings) {
+for (let binding of presetBindings) {
   ViewModel.addBinding(binding);
 }
 
@@ -1349,6 +1647,6 @@ ViewModel.delay = function(time, nameOrFunc, fn) {
   }
   id = setTimeout(func, time);
   if (name) {
-    return delayed[name] = id;
+    return (delayed[name] = id);
   }
 };
