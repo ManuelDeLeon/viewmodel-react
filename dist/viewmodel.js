@@ -36,8 +36,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var IS_NATIVE = "IS_NATIVE";
-var ReactDOM = void 0;
 var pendingShared = [];
 var savedOnUrl = [];
 
@@ -819,8 +817,9 @@ var ViewModel = function () {
 
         if (old) old.call(component);
 
-        component.vmPathToRoot = ViewModel.getPathToRoot(component);
-        component.vmPathToParent = ViewModel.getPathToParent(component);
+        component.vmPathToRoot = function () {
+          return ViewModel.getPathToRoot(component);
+        };
 
         if (component.onUrl) {
           var saveOnUrl = function saveOnUrl(component) {
@@ -893,7 +892,7 @@ var ViewModel = function () {
             }
           }
         }
-
+        component.vmReferences = undefined;
         if (old) old.call(component);
         component.vmMounted = false;
       };
@@ -1264,6 +1263,7 @@ var ViewModel = function () {
           }
         }
       };
+      component.vmReferences = {};
 
       ViewModel.prepareLoad(component);
       var _iteratorNormalCompletion11 = true;
@@ -1420,72 +1420,15 @@ var ViewModel = function () {
       }
     }
   }, {
-    key: "getComponentPath",
-    value: function getComponentPath(component) {
-      var path = component.vmComponentName;
-      var parent = component.parent();
-      if (parent) {
-        path = ViewModel.getComponentPath(parent) + component.vmPathToParent + "/" + path;
-      } else {
-        path = component.vmPathToParent + "/" + path;
-      }
-
-      return path;
-    }
-  }, {
     key: "getPathToRoot",
     value: function getPathToRoot(component) {
-      if (!ReactDOM) {
-        ReactDOM = navigator.project === "ReactNative" ? IS_NATIVE : require("react-dom");
-      }
-
-      if (ReactDOM === IS_NATIVE) {
-        return "/";
-      } else {
-        var difference, i, parentPath, viewmodelPath;
-        return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
-      }
-    }
-  }, {
-    key: "getPathToParent",
-    value: function getPathToParent(component) {
-      var difference, i, parentPath, viewmodelPath;
       var parent = component.parent();
-      if (!parent) {
-        return "/";
-      }
-      viewmodelPath = component.vmPathToRoot;
-      if (!parent.vmPathToRoot) {
-        parent.vmPathToRoot = ViewModel.getPathToRoot(parent);
-      }
-      parentPath = component.parent().vmPathToRoot;
-
-      i = 0;
-      while (parentPath[i] === viewmodelPath[i] && parentPath[i] != null) {
-        i++;
-      }
-      difference = viewmodelPath.substr(i);
-      return difference;
-    }
-  }, {
-    key: "getElementPath",
-    value: function getElementPath(element) {
-      var i, ix, sibling, siblings;
-      if (!element || !element.parentNode || element.tagName === "HTML" || element === document.body) {
-        return "/";
-      }
-      ix = 0;
-      siblings = element.parentNode.childNodes;
-      i = 0;
-      while (i < siblings.length) {
-        sibling = siblings[i];
-        if (sibling === element) {
-          return ViewModel.getElementPath(element.parentNode) + "/" + element.tagName + "[" + (ix + 1) + "]";
-        }
-        if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
-          ix++;
-        }
-        i++;
+      if (parent) {
+        var children = parent.children(component.vmComponentName);
+        var index = children.indexOf(component);
+        return ViewModel.getPathToRoot(parent) + ("[" + index + "]/" + component.vmComponentName + "/");
+      } else {
+        return component.vmComponentName + "/";
       }
     }
   }, {

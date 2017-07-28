@@ -134,7 +134,7 @@ getSavedData = function(url) {
 var getSaveUrl = function(vmObject) {
   return function(viewmodel) {
     if (typeof window === "undefined") return;
-    const vmHash = vmObject.getComponentPath(viewmodel);
+    const vmHash = vmObject.getPathToRoot(viewmodel);
     viewmodel.vmComputations.push(
       vmObject.Tracker.autorun(function(c) {
         var data, dataCompressed, dataString, fields, savedData, url;
@@ -171,7 +171,7 @@ var getLoadUrl = function(vmObject) {
       if (!data) {
         return;
       }
-      vmHash = vmObject.getComponentPath(viewmodel);
+      vmHash = vmObject.getPathToRoot(viewmodel);
       savedData = data[vmHash];
       if (savedData) {
         return viewmodel.load(savedData);

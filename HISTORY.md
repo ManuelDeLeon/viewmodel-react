@@ -1,3 +1,6 @@
+# 2.4.0
+* Add Inferno compatibility. See [Inferno](https://viewmodel.org/#BasicsInferno) for more information.
+
 # 2.3.0
 * Add component.child shortcut
 
