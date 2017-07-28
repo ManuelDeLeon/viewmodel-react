@@ -1,6 +1,3 @@
-const IS_NATIVE = "IS_NATIVE";
-let ReactDOM;
-
 const changeBinding = function(eb) {
   return (
     eb.value ||
@@ -91,23 +88,28 @@ export default [
   {
     name: "check",
     selector: "input[type=radio]",
+    bind: function(bindArg) {
+      const name = bindArg.element.name;
+      if (name) {
+        const refs = bindArg.component.vmReferences;
+        if (!refs.radios) {
+          refs.radios = { [name]: [] };
+        } else if (!refs.radios[name]) {
+          refs.radios[name] = [];
+        }
+        refs.radios[name].push(bindArg.element);
+      }
+    },
     events: {
       change: function(bindArg) {
         const checked = bindArg.element.checked;
         bindArg.setVmValue(checked);
-        if (!ReactDOM) {
-          ReactDOM =
-            navigator.project === "ReactNative"
-              ? IS_NATIVE
-              : require("react-dom");
-        }
-        if (checked && bindArg.element.name && ReactDOM !== IS_NATIVE) {
-          const inputs = ReactDOM.findDOMNode(
-            bindArg.component
-          ).querySelectorAll(`input[type=radio][name=${bindArg.element.name}]`);
-          var event = document.createEvent("HTMLEvents");
+        const name = bindArg.element.name;
+        if (checked && name) {
+          const event = document.createEvent("HTMLEvents");
           event.initEvent("change", true, false);
-          Array.prototype.forEach.call(inputs, function(input, i) {
+          const inputs = bindArg.component.vmReferences.radios[name];
+          inputs.forEach(input => {
             if (input !== bindArg.element) {
               input.dispatchEvent(event);
             }
@@ -152,25 +154,29 @@ export default [
   {
     name: "group",
     selector: "input[type=radio]",
+    bind: function(bindArg) {
+      const name = bindArg.element.name;
+      if (name) {
+        const refs = bindArg.component.vmReferences;
+        if (!refs.radios) {
+          refs.radios = { [name]: [] };
+        } else if (!refs.radios[name]) {
+          refs.radios[name] = [];
+        }
+        refs.radios[name].push(bindArg.element);
+      }
+    },
     events: {
       change: function(bindArg) {
         if (bindArg.element.checked) {
           bindArg.setVmValue(bindArg.element.value);
-          if (!ReactDOM) {
-            ReactDOM =
-              navigator.project === "ReactNative"
-                ? IS_NATIVE
-                : require("react-dom");
-          }
-          if (bindArg.element.name && ReactDOM !== IS_NATIVE) {
-            const inputs = ReactDOM.findDOMNode(
-              bindArg.component
-            ).querySelectorAll(
-              `input[type=radio][name=${bindArg.element.name}]`
-            );
-            var event = document.createEvent("HTMLEvents");
+
+          const name = bindArg.element.name;
+          if (name) {
+            const event = document.createEvent("HTMLEvents");
             event.initEvent("change", true, false);
-            Array.prototype.forEach.call(inputs, function(input, i) {
+            const inputs = bindArg.component.vmReferences.radios[name];
+            inputs.forEach(input => {
               if (input !== bindArg.element) {
                 input.dispatchEvent(event);
               }

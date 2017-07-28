@@ -5,8 +5,7 @@ import Property from "./viewmodel-property";
 import parseBind from "./parseBind";
 import presetBindings from "./bindings";
 import { getSaveUrl, getLoadUrl } from "./viewmodel-onUrl";
-const IS_NATIVE = "IS_NATIVE";
-let ReactDOM;
+
 const pendingShared = [];
 let savedOnUrl = [];
 
@@ -804,8 +803,7 @@ export default class ViewModel {
 
       if (old) old.call(component);
 
-      component.vmPathToRoot = ViewModel.getPathToRoot(component);
-      component.vmPathToParent = ViewModel.getPathToParent(component);
+      component.vmPathToRoot = () => ViewModel.getPathToRoot(component);
 
       if (component.onUrl) {
         const saveOnUrl = function(component) {
@@ -853,7 +851,7 @@ export default class ViewModel {
           }
         }
       }
-
+      component.vmReferences = undefined;
       if (old) old.call(component);
       component.vmMounted = false;
     };
@@ -1156,6 +1154,7 @@ export default class ViewModel {
         }
       }
     };
+    component.vmReferences = {};
 
     ViewModel.prepareLoad(component);
     for (let global of ViewModel.globals) {
@@ -1275,85 +1274,17 @@ export default class ViewModel {
     }
   }
 
-  static getComponentPath(component) {
-    let path = component.vmComponentName;
+  static getPathToRoot(component) {
     const parent = component.parent();
     if (parent) {
-      path =
-        ViewModel.getComponentPath(parent) +
-        component.vmPathToParent +
-        "/" +
-        path;
+      const children = parent.children(component.vmComponentName);
+      const index = children.indexOf(component);
+      return (
+        ViewModel.getPathToRoot(parent) +
+        `[${index}]/${component.vmComponentName}/`
+      );
     } else {
-      path = component.vmPathToParent + "/" + path;
-    }
-
-    return path;
-  }
-
-  static getPathToRoot(component) {
-    if (!ReactDOM) {
-      ReactDOM =
-        navigator.project === "ReactNative" ? IS_NATIVE : require("react-dom");
-    }
-
-    if (ReactDOM === IS_NATIVE) {
-      return "/";
-    } else {
-      var difference, i, parentPath, viewmodelPath;
-      return ViewModel.getElementPath(ReactDOM.findDOMNode(component));
-    }
-  }
-
-  static getPathToParent(component) {
-    var difference, i, parentPath, viewmodelPath;
-    const parent = component.parent();
-    if (!parent) {
-      return "/";
-    }
-    viewmodelPath = component.vmPathToRoot;
-    if (!parent.vmPathToRoot) {
-      parent.vmPathToRoot = ViewModel.getPathToRoot(parent);
-    }
-    parentPath = component.parent().vmPathToRoot;
-
-    i = 0;
-    while (parentPath[i] === viewmodelPath[i] && parentPath[i] != null) {
-      i++;
-    }
-    difference = viewmodelPath.substr(i);
-    return difference;
-  }
-
-  static getElementPath(element) {
-    var i, ix, sibling, siblings;
-    if (
-      !element ||
-      !element.parentNode ||
-      element.tagName === "HTML" ||
-      element === document.body
-    ) {
-      return "/";
-    }
-    ix = 0;
-    siblings = element.parentNode.childNodes;
-    i = 0;
-    while (i < siblings.length) {
-      sibling = siblings[i];
-      if (sibling === element) {
-        return (
-          ViewModel.getElementPath(element.parentNode) +
-          "/" +
-          element.tagName +
-          "[" +
-          (ix + 1) +
-          "]"
-        );
-      }
-      if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
-        ix++;
-      }
-      i++;
+      return `${component.vmComponentName}/`;
     }
   }
 
