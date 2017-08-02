@@ -1,3 +1,6 @@
+# 2.4.1
+* Preset validations (min, max, equal, notEqual, between, notBetween) now coerce values.
+
 # 2.4.0
 * Add Inferno compatibility. See [Inferno](https://viewmodel.org/#BasicsInferno) for more information.
 
