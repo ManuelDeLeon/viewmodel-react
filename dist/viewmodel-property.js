@@ -289,15 +289,32 @@ var Property = function () {
       }
     }
   }, {
+    key: "convertedValue",
+    value: function convertedValue(value) {
+      if (this.valueType === ValueTypes.integer) {
+        return parseInt(value);
+      } else if (this.valueType === ValueTypes.string) {
+        return value.toString();
+      } else if (this.valueType === ValueTypes.number) {
+        return parseFloat(value);
+      } else if (this.valueType === ValueTypes.date) {
+        return new Date(value);
+      } else if (this.valueType === ValueTypes.boolean) {
+        return !!value;
+      }
+      return value;
+    }
+  }, {
     key: "min",
     value: function min(minValue) {
       var _this = this;
 
       this.checks.push(function (value) {
-        if (_this.valueType === ValueTypes.string && isString(value)) {
-          return value.length >= minValue;
+        var toMatch = _this.convertedValue(value);
+        if (_this.valueType === ValueTypes.string) {
+          return toMatch.length >= minValue;
         } else {
-          return value >= minValue;
+          return toMatch >= minValue;
         }
       });
       return this;
@@ -308,10 +325,11 @@ var Property = function () {
       var _this2 = this;
 
       this.checks.push(function (value) {
-        if (_this2.valueType === ValueTypes.string && isString(value)) {
-          return value.length <= maxValue;
+        var toMatch = _this2.convertedValue(value);
+        if (_this2.valueType === ValueTypes.string) {
+          return toMatch.length <= maxValue;
         } else {
-          return value <= maxValue;
+          return toMatch <= maxValue;
         }
       });
       return this;
@@ -319,29 +337,34 @@ var Property = function () {
   }, {
     key: "equal",
     value: function equal(value) {
+      var _this3 = this;
+
       this.checks.push(function (v) {
-        return v === value;
+        return _this3.convertedValue(v) === value;
       });
       return this;
     }
   }, {
     key: "notEqual",
     value: function notEqual(value) {
+      var _this4 = this;
+
       this.checks.push(function (v) {
-        return v !== value;
+        return _this4.convertedValue(v) !== value;
       });
       return this;
     }
   }, {
     key: "between",
     value: function between(min, max) {
-      var _this3 = this;
+      var _this5 = this;
 
       this.checks.push(function (value) {
-        if (_this3.valueType === ValueTypes.string && isString(value)) {
-          return value.length >= min && value.length <= max;
+        var toMatch = _this5.convertedValue(value);
+        if (_this5.valueType === ValueTypes.string) {
+          return toMatch.length >= min && toMatch.length <= max;
         } else {
-          return value >= min && value <= max;
+          return toMatch >= min && toMatch <= max;
         }
       });
       return this;
@@ -349,13 +372,14 @@ var Property = function () {
   }, {
     key: "notBetween",
     value: function notBetween(min, max) {
-      var _this4 = this;
+      var _this6 = this;
 
       this.checks.push(function (value) {
-        if (_this4.valueType === ValueTypes.string && isString(value)) {
-          return value.length < min || value.length > max;
+        var toMatch = _this6.convertedValue(value);
+        if (_this6.valueType === ValueTypes.string) {
+          return toMatch.length < min || toMatch.length > max;
         } else {
-          return value < min || value > max;
+          return toMatch < min || toMatch > max;
         }
       });
       return this;

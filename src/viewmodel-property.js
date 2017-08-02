@@ -127,12 +127,28 @@ export default class Property {
     }
   }
 
+  convertedValue(value) {
+    if (this.valueType === ValueTypes.integer) {
+      return parseInt(value);
+    } else if (this.valueType === ValueTypes.string) {
+      return value.toString();
+    } else if (this.valueType === ValueTypes.number) {
+      return parseFloat(value);
+    } else if (this.valueType === ValueTypes.date) {
+      return new Date(value);
+    } else if (this.valueType === ValueTypes.boolean) {
+      return !!value;
+    }
+    return value;
+  }
+
   min(minValue) {
     this.checks.push(value => {
-      if (this.valueType === ValueTypes.string && isString(value)) {
-        return value.length >= minValue;
+      const toMatch = this.convertedValue(value);
+      if (this.valueType === ValueTypes.string) {
+        return toMatch.length >= minValue;
       } else {
-        return value >= minValue;
+        return toMatch >= minValue;
       }
     });
     return this;
@@ -140,40 +156,43 @@ export default class Property {
 
   max(maxValue) {
     this.checks.push(value => {
-      if (this.valueType === ValueTypes.string && isString(value)) {
-        return value.length <= maxValue;
+      const toMatch = this.convertedValue(value);
+      if (this.valueType === ValueTypes.string) {
+        return toMatch.length <= maxValue;
       } else {
-        return value <= maxValue;
+        return toMatch <= maxValue;
       }
     });
     return this;
   }
 
   equal(value) {
-    this.checks.push(v => v === value);
+    this.checks.push(v => this.convertedValue(v) === value);
     return this;
   }
   notEqual(value) {
-    this.checks.push(v => v !== value);
+    this.checks.push(v => this.convertedValue(v) !== value);
     return this;
   }
 
   between(min, max) {
     this.checks.push(value => {
-      if (this.valueType === ValueTypes.string && isString(value)) {
-        return value.length >= min && value.length <= max;
+      const toMatch = this.convertedValue(value);
+      if (this.valueType === ValueTypes.string) {
+        return toMatch.length >= min && toMatch.length <= max;
       } else {
-        return value >= min && value <= max;
+        return toMatch >= min && toMatch <= max;
       }
     });
     return this;
   }
   notBetween(min, max) {
     this.checks.push(value => {
-      if (this.valueType === ValueTypes.string && isString(value)) {
-        return value.length < min || value.length > max;
+      const toMatch = this.convertedValue(value);
+      if (this.valueType === ValueTypes.string) {
+        return toMatch.length < min || toMatch.length > max;
       } else {
-        return value < min || value > max;
+        return toMatch < min || toMatch > max;
       }
     });
     return this;
