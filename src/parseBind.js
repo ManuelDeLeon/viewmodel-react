@@ -44,7 +44,7 @@ _keywordRegexLookBehind = {
 
 _operators = "+-*/&|=><";
 
-const parseBind = function(objectLiteralString) {
+var parseBind = function(objectLiteralString) {
   var c, depth, i, key, match, result, str, tok, toks, v, values;
   str = objectLiteralString && objectLiteralString.trim();
   if (str.charCodeAt(0) === 123) {

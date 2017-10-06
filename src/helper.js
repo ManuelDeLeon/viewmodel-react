@@ -1,6 +1,6 @@
 const _tokens = {
   "**": function(a, b) {
-    return Math.pow(a, b);
+    return a() ** b();
   },
   "*": function(a, b) {
     return a() * b();
@@ -32,11 +32,14 @@ const _tokens = {
   "==": function(a, b) {
     return a() == b();
   },
-  "!==": function(a, b) {
-    return a() !== b();
+  "!=": function(a, b) {
+    return a() != b();
   },
   "===": function(a, b) {
     return a() === b();
+  },
+  "!==": function(a, b) {
+    return a() !== b();
   },
   "&&": function(a, b) {
     return a() && b();
@@ -46,7 +49,7 @@ const _tokens = {
   }
 };
 
-const _tokenGroup = {};
+let _tokenGroup = {};
 for (let t in _tokens) {
   if (!_tokenGroup[t.length]) {
     _tokenGroup[t.length] = {};
@@ -54,7 +57,7 @@ for (let t in _tokens) {
   _tokenGroup[t.length][t] = 1;
 }
 
-export default class Helper {
+class Helper {
   static isArray(arr) {
     return arr instanceof Array;
   }
@@ -108,22 +111,24 @@ export default class Helper {
   }
 
   static firstToken(str) {
-    var c, candidateToken, i, inQuote, j, k, len, length, token, tokenIndex;
+    let c, candidateToken, i, inQuote, j, k, len, length, token, tokenIndex;
     tokenIndex = -1;
     token = null;
     inQuote = null;
+    let afterComma = false;
     for (i = j = 0, len = str.length; j < len; i = ++j) {
       c = str[i];
       if (token) {
         break;
       }
+
       if (c === '"' || c === "'") {
         if (inQuote === c) {
           inQuote = null;
         } else if (!inQuote) {
           inQuote = c;
         }
-      } else if (!inQuote && ~"+-*/%&|><=".indexOf(c)) {
+      } else if (!afterComma && !inQuote && ~"+-*/%&|><=!".indexOf(c)) {
         tokenIndex = i;
         for (length = k = 4; k >= 1; length = --k) {
           if (str.length > tokenIndex + length) {
@@ -135,12 +140,18 @@ export default class Helper {
           }
         }
       }
+
+      if (c === ",") {
+        afterComma = true;
+      } else if (afterComma && c !== " ") {
+        afterComma = false;
+      }
     }
     return [token, tokenIndex];
   }
 
   static getMatchingParenIndex(bindValue, parenIndexStart) {
-    var currentChar, i, j, openParenCount, ref, ref1;
+    let currentChar, i, j, openParenCount, ref, ref1;
     if (!~parenIndexStart) {
       return -1;
     }
@@ -170,8 +181,8 @@ export default class Helper {
       el.msMatchesSelector ||
       el.mozMatchesSelector ||
       el.webkitMatchesSelector ||
-      el.oMatchesSelector)
-      .call(el, selector);
+      el.oMatchesSelector
+    ).call(el, selector);
   }
 
   static reactStyle(str) {
@@ -200,3 +211,5 @@ Helper.nextId = 1;
 Helper.stringRegex = /^(?:"(?:[^"]|\\")*[^\\]"|'(?:[^']|\\')*[^\\]')$/;
 Helper.tokens = _tokens;
 Helper.dotRegex = /(\D\.)|(\.\D)/;
+
+export default Helper;
