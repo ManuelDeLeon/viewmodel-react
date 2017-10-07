@@ -2,7 +2,7 @@
   "name": "viewmodel-react",
   "version": "2.4.1",
   "description": "ViewModel for React",
-  "main": "dist/viewmodel.js",
+  "main": "dist/ViewModel.js",
   "author": "Manuel De Leon <manuel@me.com> (https://viewmodel.org/)",
   "license": "MIT",
   "scripts": {

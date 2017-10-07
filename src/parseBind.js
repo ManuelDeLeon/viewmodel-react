@@ -44,7 +44,10 @@ _keywordRegexLookBehind = {
 
 _operators = "+-*/&|=><";
 
+const cached = {};
 var parseBind = function(objectLiteralString) {
+  const retVal = cached[objectLiteralString];
+  if (retVal) return retVal;
   var c, depth, i, key, match, result, str, tok, toks, v, values;
   str = objectLiteralString && objectLiteralString.trim();
   if (str.charCodeAt(0) === 123) {
@@ -111,6 +114,7 @@ var parseBind = function(objectLiteralString) {
       }
     }
   }
+  cached[objectLiteralString] = result;
   return result;
 };
 

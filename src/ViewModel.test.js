@@ -13,7 +13,6 @@ describe(`ViewModel`, () => {
   it("has vm prop names", () => {
     expect(ViewModel.vmStateChanged).toBeTruthy();
     expect(ViewModel.vmAutoruns).toBeTruthy();
-    expect(ViewModel.vmId).toBeTruthy();
   });
 
   describe("createProp", () => {

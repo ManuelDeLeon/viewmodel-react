@@ -478,7 +478,7 @@ describe(`ViewModel.getValue`, () => {
   });
   it(`creates a property on the component`, () => {
     const comp = {
-      [ViewModel.vmId]: 1
+      vmId: 1
     };
     const value = ViewModel.getValue(comp, `name`);
     expect(value).toBe("");

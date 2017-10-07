@@ -6,7 +6,6 @@ const PENDING_AUTORUNS = "PendingAutoruns";
 const ViewModel = {
   vmStateChanged: Symbol("vmStateChanged"),
   vmAutoruns: Symbol("vmAutoruns"),
-  vmId: Symbol("vmId"),
 
   delay(time, nameOrFunc, fn) {
     let d, name;
@@ -86,7 +85,7 @@ const ViewModel = {
   getValue(container, bindValue, viewmodel) {
     let value;
     if (!viewmodel) viewmodel = container;
-    bindValue = bindValue.trim();
+    bindValue = H.trim(bindValue);
     const negate = bindValue.charAt(0) === "!";
     if (negate) {
       bindValue = bindValue.substring(1);
@@ -108,7 +107,7 @@ const ViewModel = {
           bindValue.substring(tokenIndex + token.length),
           viewmodel
         );
-      value = H.tokens[token.trim()](left, right);
+      value = H.tokens[H.trim(token)](left, right);
     } else if (bindValue === "this") {
       value = viewmodel;
     } else if (H.isQuoted(bindValue)) {
@@ -121,8 +120,8 @@ const ViewModel = {
 
       const parenIndexEnd = H.getMatchingParenIndex(bindValue, parenIndexStart);
       const breakOnFirstDot =
-        ~dotIndex &&
-        (!~parenIndexStart ||
+        dotIndex >= 0 &&
+        (parenIndexStart === -1 ||
           dotIndex < parenIndexStart ||
           dotIndex === parenIndexEnd + 1);
       if (breakOnFirstDot) {
@@ -146,7 +145,7 @@ const ViewModel = {
             if (second.length > 2) {
               const ref1 = second.substr(1, second.length - 2).split(",");
               for (let j = 0, len = ref1.length; j < len; j++) {
-                let arg = ref1[j].trim();
+                let arg = H.trim(ref1[j]);
                 let newArg;
                 if (arg === "this") {
                   newArg = viewmodel;
@@ -167,7 +166,11 @@ const ViewModel = {
             }
           }
           const primitive = H.isPrimitive(name);
-          if (container[ViewModel.vmId] && !primitive && !container[name]) {
+          if (
+            !primitive &&
+            !container.hasOwnProperty(name) &&
+            container.hasOwnProperty(vmId)
+          ) {
             container[name] = ViewModel.createProp("", container);
           }
           if (

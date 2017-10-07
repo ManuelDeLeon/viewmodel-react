@@ -1,3 +1,6 @@
+const tokenized = {};
+const tokenizedNone = {};
+const regexChars = /[\+\-\*\/%&\|><=!]/;
 const _tokens = {
   "**": function(a, b) {
     return a() ** b();
@@ -57,6 +60,45 @@ for (let t in _tokens) {
   _tokenGroup[t.length][t] = 1;
 }
 
+function allBlankCharCodes(str) {
+  var l = str.length,
+    a;
+  for (var i = 0; i < l; i++) {
+    a = str.charCodeAt(i);
+    if (
+      (a < 9 || a > 13) &&
+      a !== 32 &&
+      a !== 133 &&
+      a !== 160 &&
+      a !== 5760 &&
+      a !== 6158 &&
+      (a < 8192 || a > 8205) &&
+      a !== 8232 &&
+      a !== 8233 &&
+      a !== 8239 &&
+      a !== 8287 &&
+      a !== 8288 &&
+      a !== 12288 &&
+      a !== 65279
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function fastIsNumeric(n) {
+  var type = typeof n;
+  if (type === "string") {
+    var original = n;
+    n = +n;
+    // whitespace strings cast to zero - filter them out
+    if (n === 0 && allBlankCharCodes(original)) return false;
+  } else if (type !== "number") return false;
+
+  return n - n < 1;
+}
+
 class Helper {
   static isArray(arr) {
     return arr instanceof Array;
@@ -71,7 +113,8 @@ class Helper {
     return typeof str === "string" || str instanceof String;
   }
   static isNumeric(n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
+    //return !isNaN(parseFloat(n)) && isFinite(n);
+    return fastIsNumeric(n);
   }
 
   static isQuoted(str) {
@@ -89,6 +132,17 @@ class Helper {
       val === "undefined" ||
       Helper.isNumeric(val)
     );
+  }
+
+  static trim(s) {
+    let str = s.replace(/^\s+/, "");
+    for (var i = str.length - 1; i >= 0; i--) {
+      if (/\S/.test(str.charAt(i))) {
+        str = str.substring(0, i + 1);
+        break;
+      }
+    }
+    return str;
   }
 
   static getPrimitive(val) {
@@ -111,6 +165,14 @@ class Helper {
   }
 
   static firstToken(str) {
+    if (tokenizedNone[str]) return [, -1];
+    const retToken = tokenized[str];
+    if (retToken) return retToken;
+
+    if (!regexChars.test(str)) {
+      tokenizedNone[str] = 1;
+      return [, -1];
+    }
     let c, candidateToken, i, inQuote, j, k, len, length, token, tokenIndex;
     tokenIndex = -1;
     token = null;
@@ -147,7 +209,12 @@ class Helper {
         afterComma = false;
       }
     }
-    return [token, tokenIndex];
+    if (tokenIndex >= 0) {
+      return (tokenized[str] = [token, tokenIndex]);
+    } else {
+      tokenizedNone[str] = 1;
+      return [, -1];
+    }
   }
 
   static getMatchingParenIndex(bindValue, parenIndexStart) {
