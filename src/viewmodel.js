@@ -96,7 +96,9 @@ export default class ViewModel {
           if (H.isFunction(content) || ViewModel.properties[prop]) {
             ViewModel.shared[key][prop] = content;
           } else {
-            ViewModel.shared[key][prop] = ViewModel.prop(content);
+            const sharedProp = ViewModel.prop(content);
+            sharedProp.vmSharedProp = true;
+            ViewModel.shared[key][prop] = sharedProp;
           }
         }
       }
@@ -709,7 +711,9 @@ export default class ViewModel {
             container[key].vmPropId &&
             H.isFunction(container[key])
           ) {
-            container[key](value);
+            if (!container[key].vmSharedProp) {
+              container[key](value);
+            } 
           } else {
             container[key] = ViewModel.prop(value, component);
           }
@@ -906,18 +910,6 @@ export default class ViewModel {
       this.load(props);
       if (old) old.call(component);
     };
-  }
-
-  static prepareMethodsAndProperties(component, initial) {
-    for (let prop in initial) {
-      if (ViewModel.reactKeyword[prop]) continue;
-      if (typeof initial[prop] === "function") {
-        component[prop] = initial[prop].bind(component);
-        component[prop].vmIsFunc = true;
-      } else {
-        component[prop] = ViewModel.prop(initial[prop], component);
-      }
-    }
   }
 
   static prepareChildren(component) {
@@ -1163,7 +1155,6 @@ export default class ViewModel {
     component.load(initial);
     component.child = filter => component.children(filter)[0];
     ViewModel.prepareChildren(component);
-    ViewModel.prepareMethodsAndProperties(component, initial);
     ViewModel.prepareComponentWillMount(component);
     ViewModel.prepareComponentDidMount(component);
     ViewModel.prepareComponentDidUpdate(component);
@@ -1452,11 +1443,9 @@ export default class ViewModel {
     }
   }
 
-  static loadComponent(comp) {
+  static loadComponent(initial) {
     const vm = {};
-    ViewModel.prepareComponent("TestComponent", vm, null);
-    vm.load(comp);
-    vm.reset();
+    ViewModel.prepareComponent("TestComponent", vm, initial);
     return vm;
   }
 }

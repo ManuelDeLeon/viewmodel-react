@@ -1,3 +1,6 @@
+# 3.0.0
+* shared properties keep the initial value when a component declares it. It makes more sense for the initial value of a shared property to be defined in the ViewModel.share
+
 # 2.4.1
 * Preset validations (min, max, equal, notEqual, between, notBetween) now coerce values.
 
