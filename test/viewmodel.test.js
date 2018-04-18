@@ -43,3 +43,27 @@ describe("mixin", () => {
     expect(result).toBe("XYZ");
   });
 });
+
+describe("data/load", ()=> {
+    beforeEach(function() {
+      jest.useFakeTimers();
+    });
+  it("retrieves and loads state", () => {
+    var vm1 = ViewModel.loadComponent({ name: "Alan" });
+    ViewModel.rootComponents = [vm1];
+    var data = ViewModel.data();
+    vm1.name("Brito");
+    ViewModel.load(data);
+    jest.runAllTimers();
+    expect(vm1.name()).toBe("Alan");
+  })
+});
+
+describe("getPathToRoot", () => {
+
+  it("returns root if it doesn't have a parent", () => {
+    var vm1 = ViewModel.loadComponent({ name: "Alan" });
+    var path = ViewModel.getPathToRoot(vm1);
+    expect(path).toBe("TestComponent/");
+  });
+});

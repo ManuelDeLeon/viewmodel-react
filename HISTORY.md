@@ -1,3 +1,6 @@
+# 3.1.0
+* Add ViewModel.data() & .load(data) with the state of the entire app.
+
 # 3.0.0
 * shared properties keep the initial value when a component declares it. It makes more sense for the initial value of a shared property to be defined in the ViewModel.share
 

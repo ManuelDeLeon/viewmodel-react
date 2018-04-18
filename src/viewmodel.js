@@ -529,10 +529,7 @@ export default class ViewModel {
           viewmodel
         );
         newBindValue = bindValue.substring(i + 1);
-        const thisContainer = {
-          container,
-          prevContainer
-        };
+        const thisContainer = { container, prevContainer };
         ViewModel.setValueFull(
           value,
           repeatObject,
@@ -696,7 +693,7 @@ export default class ViewModel {
     return parseBind(str);
   }
 
-  static load(toLoad, container, component = container) {
+  static loadIntoContainer(toLoad, container, component = container) {
     const loadObj = function(obj) {
       for (let key in obj) {
         const value = obj[key];
@@ -713,7 +710,7 @@ export default class ViewModel {
           ) {
             if (!container[key].vmSharedProp) {
               container[key](value);
-            } 
+            }
           } else {
             container[key] = ViewModel.prop(value, component);
           }
@@ -1050,11 +1047,15 @@ export default class ViewModel {
         const mixshare = toLoad[ref];
         if (mixshare instanceof Array) {
           for (let item of mixshare) {
-            ViewModel.load(collection[item], container, component);
+            ViewModel.loadIntoContainer(collection[item], container, component);
             bag[item] = ref;
           }
         } else {
-          ViewModel.load(collection[mixshare], container, component);
+          ViewModel.loadIntoContainer(
+            collection[mixshare],
+            container,
+            component
+          );
           bag[mixshare] = ref;
         }
         component[ref] = container;
@@ -1095,7 +1096,7 @@ export default class ViewModel {
 
       // Load the object into the component
       // (direct properties)
-      ViewModel.load(toLoad, component);
+      ViewModel.loadIntoContainer(toLoad, component);
 
       const hooks = {
         created: "vmCreated",
@@ -1266,8 +1267,8 @@ export default class ViewModel {
   }
 
   static getPathToRoot(component) {
-    const parent = component.parent();
-    if (parent) {
+    let parent;
+    if (component.parent && (parent = component.parent())) {
       const children = parent.children(component.vmComponentName);
       const index = children.indexOf(component);
       return (
@@ -1447,6 +1448,52 @@ export default class ViewModel {
     const vm = {};
     ViewModel.prepareComponent("TestComponent", vm, initial);
     return vm;
+  }
+
+  static data() {
+    if (!ViewModel.rootComponents) {
+      ViewModel.prepareRoot();
+    }
+    const allComponents = {};
+    for (let component of ViewModel.rootComponents) {
+      ViewModel.fillTree(allComponents, component);
+    }
+    return allComponents;
+  }
+
+  static fillTree(allComponents, component) {
+    if (component.vmComponentName === "ViewModelExplorer") return;
+    const data = component.data();
+    if (Object.keys(data).length > 0) {
+      allComponents[ViewModel.getPathToRoot(component)] = data;
+    }
+    for (let child of component.children()) {
+      ViewModel.fillTree(allComponents, child);
+    }
+  }
+
+  static load(allData) {
+    if (!ViewModel.rootComponents) {
+      ViewModel.prepareRoot();
+    }
+    ViewModel.Tracker.nonreactive(function() {
+      for (let component of ViewModel.rootComponents) {
+        ViewModel.loadComponentState(allData, component);
+      }
+    });
+  }
+
+  static loadComponentState(allData, component) {
+    ViewModel.Tracker.afterFlush(() => {
+      const data = allData[ViewModel.getPathToRoot(component)];
+      if (data) {
+        component.load(data);
+      }
+
+      for (let child of component.children()) {
+        this.loadComponentState(allData, child);
+      }
+    });
   }
 }
 
