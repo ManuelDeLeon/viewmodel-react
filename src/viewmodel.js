@@ -89,7 +89,7 @@ export default class ViewModel {
     if (pendingShared.length === 0) return;
     for (var obj of pendingShared) {
       for (let key in obj) {
-        ViewModel.shared[key] = { vmChange() {}};
+        ViewModel.shared[key] = { vmChange() {} };
         let value = obj[key];
         for (let prop in value) {
           let content = value[prop];

@@ -249,7 +249,7 @@ export default [
     },
     autorun: function(bindArg) {
       const value = bindArg.getVmValue();
-      if (bindArg.element === document.activeElement !== value) {
+      if ((bindArg.element === document.activeElement) !== value) {
         if (value) {
           bindArg.element.focus();
         } else {

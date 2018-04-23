@@ -165,13 +165,14 @@ export default class Helper {
   }
 
   static elementMatch(el, selector) {
-    return (el.matches ||
+    return (
+      el.matches ||
       el.matchesSelector ||
       el.msMatchesSelector ||
       el.mozMatchesSelector ||
       el.webkitMatchesSelector ||
-      el.oMatchesSelector)
-      .call(el, selector);
+      el.oMatchesSelector
+    ).call(el, selector);
   }
 
   static reactStyle(str) {

@@ -72,9 +72,12 @@ var LZString = (function() {
         for (var n = new Array(o.length / 2), e = 0, t = n.length; t > e; e++)
           n[e] = 256 * o[2 * e] + o[2 * e + 1];
         var s = [];
-        return n.forEach(function(o) {
-          s.push(r(o));
-        }), i.decompress(s.join(""));
+        return (
+          n.forEach(function(o) {
+            s.push(r(o));
+          }),
+          i.decompress(s.join(""))
+        );
       },
       compressToEncodedURIComponent: function(o) {
         return null == o
@@ -88,12 +91,10 @@ var LZString = (function() {
           ? ""
           : "" == r
             ? null
-            : (
-                (r = r.replace(/ /g, "+")),
-                i._decompress(r.length, 32, function(n) {
-                  return o(e, r.charAt(n));
-                })
-              );
+            : ((r = r.replace(/ /g, "+")),
+              i._decompress(r.length, 32, function(n) {
+                return o(e, r.charAt(n));
+              }));
       },
       compress: function(o) {
         return i._compress(o, 16, function(o) {
@@ -118,45 +119,43 @@ var LZString = (function() {
           v = 0;
         for (i = 0; i < o.length; i += 1)
           if (
-            (
-              (u = o.charAt(i)),
-              Object.prototype.hasOwnProperty.call(s, u) ||
-                ((s[u] = f++), (p[u] = !0)),
-              (c = a + u),
-              Object.prototype.hasOwnProperty.call(s, c)
-            )
+            ((u = o.charAt(i)),
+            Object.prototype.hasOwnProperty.call(s, u) ||
+              ((s[u] = f++), (p[u] = !0)),
+            (c = a + u),
+            Object.prototype.hasOwnProperty.call(s, c))
           )
             a = c;
           else {
             if (Object.prototype.hasOwnProperty.call(p, a)) {
               if (a.charCodeAt(0) < 256) {
                 for (e = 0; h > e; e++)
-                  (m <<= 1), v == r - 1
-                    ? ((v = 0), d.push(n(m)), (m = 0))
-                    : v++;
+                  (m <<= 1),
+                    v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++;
                 for (t = a.charCodeAt(0), e = 0; 8 > e; e++)
-                  (m = (m << 1) | (1 & t)), v == r - 1
-                    ? ((v = 0), d.push(n(m)), (m = 0))
-                    : v++, (t >>= 1);
+                  (m = (m << 1) | (1 & t)),
+                    v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+                    (t >>= 1);
               } else {
                 for (t = 1, e = 0; h > e; e++)
-                  (m = (m << 1) | t), v == r - 1
-                    ? ((v = 0), d.push(n(m)), (m = 0))
-                    : v++, (t = 0);
+                  (m = (m << 1) | t),
+                    v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+                    (t = 0);
                 for (t = a.charCodeAt(0), e = 0; 16 > e; e++)
-                  (m = (m << 1) | (1 & t)), v == r - 1
-                    ? ((v = 0), d.push(n(m)), (m = 0))
-                    : v++, (t >>= 1);
+                  (m = (m << 1) | (1 & t)),
+                    v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+                    (t >>= 1);
               }
               l--, 0 == l && ((l = Math.pow(2, h)), h++), delete p[a];
             } else
               for (t = s[a], e = 0; h > e; e++)
-                (m = (m << 1) | (1 & t)), v == r - 1
-                  ? ((v = 0), d.push(n(m)), (m = 0))
-                  : v++, (t >>= 1);
-            l--, 0 == l && ((l = Math.pow(2, h)), h++), (s[
-              c
-            ] = f++), (a = String(u));
+                (m = (m << 1) | (1 & t)),
+                  v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+                  (t >>= 1);
+            l--,
+              0 == l && ((l = Math.pow(2, h)), h++),
+              (s[c] = f++),
+              (a = String(u));
           }
         if ("" !== a) {
           if (Object.prototype.hasOwnProperty.call(p, a)) {
@@ -164,31 +163,31 @@ var LZString = (function() {
               for (e = 0; h > e; e++)
                 (m <<= 1), v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++;
               for (t = a.charCodeAt(0), e = 0; 8 > e; e++)
-                (m = (m << 1) | (1 & t)), v == r - 1
-                  ? ((v = 0), d.push(n(m)), (m = 0))
-                  : v++, (t >>= 1);
+                (m = (m << 1) | (1 & t)),
+                  v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+                  (t >>= 1);
             } else {
               for (t = 1, e = 0; h > e; e++)
-                (m = (m << 1) | t), v == r - 1
-                  ? ((v = 0), d.push(n(m)), (m = 0))
-                  : v++, (t = 0);
+                (m = (m << 1) | t),
+                  v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+                  (t = 0);
               for (t = a.charCodeAt(0), e = 0; 16 > e; e++)
-                (m = (m << 1) | (1 & t)), v == r - 1
-                  ? ((v = 0), d.push(n(m)), (m = 0))
-                  : v++, (t >>= 1);
+                (m = (m << 1) | (1 & t)),
+                  v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+                  (t >>= 1);
             }
             l--, 0 == l && ((l = Math.pow(2, h)), h++), delete p[a];
           } else
             for (t = s[a], e = 0; h > e; e++)
-              (m = (m << 1) | (1 & t)), v == r - 1
-                ? ((v = 0), d.push(n(m)), (m = 0))
-                : v++, (t >>= 1);
+              (m = (m << 1) | (1 & t)),
+                v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+                (t >>= 1);
           l--, 0 == l && ((l = Math.pow(2, h)), h++);
         }
         for (t = 2, e = 0; h > e; e++)
-          (m = (m << 1) | (1 & t)), v == r - 1
-            ? ((v = 0), d.push(n(m)), (m = 0))
-            : v++, (t >>= 1);
+          (m = (m << 1) | (1 & t)),
+            v == r - 1 ? ((v = 0), d.push(n(m)), (m = 0)) : v++,
+            (t >>= 1);
         for (;;) {
           if (((m <<= 1), v == r - 1)) {
             d.push(n(m));
@@ -225,22 +224,28 @@ var LZString = (function() {
           A = { val: e(0), position: n, index: 1 };
         for (i = 0; 3 > i; i += 1) f[i] = i;
         for (p = 0, c = Math.pow(2, 2), a = 1; a != c; )
-          (u = A.val & A.position), (A.position >>= 1), 0 == A.position &&
-            ((A.position = n), (A.val = e(A.index++))), (p |=
-            (u > 0 ? 1 : 0) * a), (a <<= 1);
+          (u = A.val & A.position),
+            (A.position >>= 1),
+            0 == A.position && ((A.position = n), (A.val = e(A.index++))),
+            (p |= (u > 0 ? 1 : 0) * a),
+            (a <<= 1);
         switch ((t = p)) {
           case 0:
             for (p = 0, c = Math.pow(2, 8), a = 1; a != c; )
-              (u = A.val & A.position), (A.position >>= 1), 0 == A.position &&
-                ((A.position = n), (A.val = e(A.index++))), (p |=
-                (u > 0 ? 1 : 0) * a), (a <<= 1);
+              (u = A.val & A.position),
+                (A.position >>= 1),
+                0 == A.position && ((A.position = n), (A.val = e(A.index++))),
+                (p |= (u > 0 ? 1 : 0) * a),
+                (a <<= 1);
             l = r(p);
             break;
           case 1:
             for (p = 0, c = Math.pow(2, 16), a = 1; a != c; )
-              (u = A.val & A.position), (A.position >>= 1), 0 == A.position &&
-                ((A.position = n), (A.val = e(A.index++))), (p |=
-                (u > 0 ? 1 : 0) * a), (a <<= 1);
+              (u = A.val & A.position),
+                (A.position >>= 1),
+                0 == A.position && ((A.position = n), (A.val = e(A.index++))),
+                (p |= (u > 0 ? 1 : 0) * a),
+                (a <<= 1);
             l = r(p);
             break;
           case 2:
@@ -249,22 +254,28 @@ var LZString = (function() {
         for (f[3] = l, s = l, w.push(l); ; ) {
           if (A.index > o) return "";
           for (p = 0, c = Math.pow(2, m), a = 1; a != c; )
-            (u = A.val & A.position), (A.position >>= 1), 0 == A.position &&
-              ((A.position = n), (A.val = e(A.index++))), (p |=
-              (u > 0 ? 1 : 0) * a), (a <<= 1);
+            (u = A.val & A.position),
+              (A.position >>= 1),
+              0 == A.position && ((A.position = n), (A.val = e(A.index++))),
+              (p |= (u > 0 ? 1 : 0) * a),
+              (a <<= 1);
           switch ((l = p)) {
             case 0:
               for (p = 0, c = Math.pow(2, 8), a = 1; a != c; )
-                (u = A.val & A.position), (A.position >>= 1), 0 == A.position &&
-                  ((A.position = n), (A.val = e(A.index++))), (p |=
-                  (u > 0 ? 1 : 0) * a), (a <<= 1);
+                (u = A.val & A.position),
+                  (A.position >>= 1),
+                  0 == A.position && ((A.position = n), (A.val = e(A.index++))),
+                  (p |= (u > 0 ? 1 : 0) * a),
+                  (a <<= 1);
               (f[d++] = r(p)), (l = d - 1), h--;
               break;
             case 1:
               for (p = 0, c = Math.pow(2, 16), a = 1; a != c; )
-                (u = A.val & A.position), (A.position >>= 1), 0 == A.position &&
-                  ((A.position = n), (A.val = e(A.index++))), (p |=
-                  (u > 0 ? 1 : 0) * a), (a <<= 1);
+                (u = A.val & A.position),
+                  (A.position >>= 1),
+                  0 == A.position && ((A.position = n), (A.val = e(A.index++))),
+                  (p |= (u > 0 ? 1 : 0) * a),
+                  (a <<= 1);
               (f[d++] = r(p)), (l = d - 1), h--;
               break;
             case 2:
@@ -275,8 +286,11 @@ var LZString = (function() {
             if (l !== d) return null;
             v = s + s.charAt(0);
           }
-          w.push(v), (f[d++] = s + v.charAt(0)), h--, (s = v), 0 == h &&
-            ((h = Math.pow(2, m)), m++);
+          w.push(v),
+            (f[d++] = s + v.charAt(0)),
+            h--,
+            (s = v),
+            0 == h && ((h = Math.pow(2, m)), m++);
         }
       }
     };
