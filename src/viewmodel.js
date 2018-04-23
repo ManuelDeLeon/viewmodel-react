@@ -1043,7 +1043,7 @@ export default class ViewModel {
       bag[toLoad] = null;
     } else {
       for (let ref in toLoad) {
-        const container = { vmChange() {}};
+        const container = { vmChange: component.vmChange };
         const mixshare = toLoad[ref];
         if (mixshare instanceof Array) {
           for (let item of mixshare) {
@@ -1528,6 +1528,7 @@ ViewModel.reserved = {
   vmPropId: 1,
   vmMounted: 1,
   vmElementBind: 1,
+  vmChange: 1,
   templateInstance: 1,
   parent: 1,
   children: 1,

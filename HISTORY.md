@@ -1,3 +1,6 @@
+# 3.1.2
+* Update vmChanged when share/mixin updates
+
 # 3.1.1
 * Set proper context (this) for share and mixin
 

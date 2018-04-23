@@ -80,7 +80,9 @@ describe("Properties", () => {
         newValue = nextValue;
         oldValue = this.name();
       })});
+      expect(vm.vmChanged).toBeFalsy();
       vm.name("A");
+      expect(vm.vmChanged).toBe(true);
       expect(context).toBe(vm);
       expect(newValue).toBe("A");
       expect(oldValue).toBe("B");
@@ -106,7 +108,9 @@ describe("Properties", () => {
             var vm = ViewModel.loadComponent({
               share: 'bfu'
             });
+            expect(vm.vmChanged).toBeFalsy();
             vm.name("A");
+            expect(vm.vmChanged).toBe(true);
             expect(context).toBe(ViewModel.shared['bfu']);
             expect(newValue).toBe("A");
             expect(oldValue).toBe("B");
@@ -130,7 +134,9 @@ describe("Properties", () => {
           });
 
           var vm = ViewModel.loadComponent({ share: { foo: "bfu1" } });
+          expect(vm.vmChanged).toBeFalsy();
           vm.foo.name("A");
+          expect(vm.vmChanged).toBe(true);
           expect(context).toBe(ViewModel.shared["bfu1"]);
           expect(newValue).toBe("A");
           expect(oldValue).toBe("B");
@@ -154,7 +160,9 @@ describe("Properties", () => {
           });
 
           var vm = ViewModel.loadComponent({ mixin: "bfu" });
+          expect(vm.vmChanged).toBeFalsy();
           vm.name("A");
+          expect(vm.vmChanged).toBe(true);
           expect(context).toBe(vm);
           expect(newValue).toBe("A");
           expect(oldValue).toBe("B");
@@ -178,7 +186,9 @@ describe("Properties", () => {
           var vm = ViewModel.loadComponent({
             mixin: { foo: "bfu1" }
           });
+          expect(vm.vmChanged).toBeFalsy();
           vm.foo.name("A");
+          expect(vm.vmChanged).toBe(true);
           expect(newValue).toBe("A");
           expect(oldValue).toBe("B");
         });
