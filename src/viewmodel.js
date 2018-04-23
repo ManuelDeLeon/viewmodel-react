@@ -89,14 +89,14 @@ export default class ViewModel {
     if (pendingShared.length === 0) return;
     for (var obj of pendingShared) {
       for (let key in obj) {
-        ViewModel.shared[key] = {};
+        ViewModel.shared[key] = { vmChange() {}};
         let value = obj[key];
         for (let prop in value) {
           let content = value[prop];
           if (H.isFunction(content) || ViewModel.properties[prop]) {
             ViewModel.shared[key][prop] = content;
           } else {
-            const sharedProp = ViewModel.prop(content);
+            const sharedProp = ViewModel.prop(content, ViewModel.shared[key]);
             sharedProp.vmSharedProp = true;
             ViewModel.shared[key][prop] = sharedProp;
           }
@@ -712,7 +712,7 @@ export default class ViewModel {
               container[key](value);
             }
           } else {
-            container[key] = ViewModel.prop(value, component);
+            container[key] = ViewModel.prop(value, container);
           }
         }
       }
@@ -1043,7 +1043,7 @@ export default class ViewModel {
       bag[toLoad] = null;
     } else {
       for (let ref in toLoad) {
-        const container = {};
+        const container = { vmChange() {}};
         const mixshare = toLoad[ref];
         if (mixshare instanceof Array) {
           for (let item of mixshare) {

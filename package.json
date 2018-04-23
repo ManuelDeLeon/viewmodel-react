@@ -1,13 +1,13 @@
 {
   "name": "viewmodel-react",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "ViewModel for React",
   "main": "dist/viewmodel.js",
   "author": "Manuel De Leon <manuel@me.com> (https://viewmodel.org/)",
   "license": "MIT",
   "scripts": {
     "test": "jest",
-    "prepublish": "babel --presets es2015 --out-dir dist src"
+    "prepublish": "babel --presets es2015 --out-dir dist src && npm run test"
   },
   "devDependencies": {
     "babel-preset-es2015": "^6.24.1",

@@ -1,3 +1,6 @@
+# 3.1.1
+* Set proper context (this) for share and mixin
+
 # 3.1.0
 * Add ViewModel.data() & .load(data) with the state of the entire app.
 
