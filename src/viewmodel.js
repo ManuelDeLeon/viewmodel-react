@@ -139,6 +139,7 @@ export default class ViewModel {
         : ViewModel.Property.validator(initial);
 
     const changeValue = function(value) {
+      const prevValue = _value;
       if (validator.beforeUpdates.length) {
         validator.beforeValueUpdate(value, component);
       }
@@ -154,7 +155,7 @@ export default class ViewModel {
       }
 
       if (validator.afterUpdates.length) {
-        validator.afterValueUpdate(_value, component);
+        validator.afterValueUpdate(prevValue, component);
       }
 
       return dependency.changed();

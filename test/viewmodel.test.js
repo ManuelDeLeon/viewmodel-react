@@ -1,4 +1,5 @@
 var ViewModel = require("../dist/viewmodel");
+
 describe("share", () => {
   beforeEach(() => {
     ViewModel.share({ house: { address: "123" } });
@@ -188,6 +189,130 @@ describe("Properties", () => {
       var vm = ViewModel.loadComponent({
         mixin: { foo: "bfu1" }
       });
+      expect(vm.vmChanged).toBeFalsy();
+      vm.foo.name("A");
+      expect(vm.vmChanged).toBe(true);
+      expect(newValue).toBe("A");
+      expect(oldValue).toBe("B");
+    });
+  });
+
+  describe("afterUpdate", () => {
+    it("sets component as this/context", () => {
+      var context = null;
+      var newValue = "";
+      var oldValue = "";
+      var vm = ViewModel.loadComponent({
+        name: ViewModel.property.string
+          .default("B")
+          .afterUpdate(function(value) {
+            context = this;
+            oldValue = value;
+            newValue = this.name();
+          })
+      });
+      expect(vm.vmChanged).toBeFalsy();
+      vm.name("A");
+      expect(vm.vmChanged).toBe(true);
+      expect(context).toBe(vm);
+      expect(newValue).toBe("A");
+      expect(oldValue).toBe("B");
+    });
+
+    it("sets context from direct share", () => {
+      var context = null;
+      var newValue = "";
+      var oldValue = "";
+
+      ViewModel.share({
+        bfu: {
+          name: ViewModel.property.string
+            .default("B")
+            .afterUpdate(function(value) {
+              context = this;
+              oldValue = value;
+              newValue = this.name();
+            })
+        }
+      });
+
+      var vm = ViewModel.loadComponent({ share: "bfu" });
+      expect(vm.vmChanged).toBeFalsy();
+      vm.name("A");
+      expect(vm.vmChanged).toBe(true);
+      expect(context).toBe(ViewModel.shared["bfu"]);
+      expect(newValue).toBe("A");
+      expect(oldValue).toBe("B");
+    });
+
+    it("sets context from scoped share", () => {
+      var context = null;
+      var newValue = "";
+      var oldValue = "";
+
+      ViewModel.share({
+        bfu1: {
+          name: ViewModel.property.string
+            .default("B")
+            .afterUpdate(function(value) {
+              context = this;
+              oldValue = value;
+              newValue = this.name();
+            })
+        }
+      });
+
+      var vm = ViewModel.loadComponent({ share: { foo: "bfu1" } });
+      expect(vm.vmChanged).toBeFalsy();
+      vm.foo.name("A");
+      expect(vm.vmChanged).toBe(true);
+      expect(context).toBe(ViewModel.shared["bfu1"]);
+      expect(newValue).toBe("A");
+      expect(oldValue).toBe("B");
+    });
+
+    it("sets context from direct mixin", () => {
+      var context = null;
+      var newValue = "";
+      var oldValue = "";
+
+      ViewModel.mixin({
+        bfu: {
+          name: ViewModel.property.string
+            .default("B")
+            .afterUpdate(function(value) {
+              context = this;
+              oldValue = value;
+              newValue = this.name();
+            })
+        }
+      });
+
+      var vm = ViewModel.loadComponent({ mixin: "bfu" });
+      expect(vm.vmChanged).toBeFalsy();
+      vm.name("A");
+      expect(vm.vmChanged).toBe(true);
+      expect(context).toBe(vm);
+      expect(newValue).toBe("A");
+      expect(oldValue).toBe("B");
+    });
+
+    it("sets context from scoped mixin", () => {
+      var newValue = "";
+      var oldValue = "";
+
+      ViewModel.mixin({
+        bfu1: {
+          name: ViewModel.property.string
+            .default("B")
+            .afterUpdate(function(value) {
+              oldValue = value;
+              newValue = this.name();
+            })
+        }
+      });
+
+      var vm = ViewModel.loadComponent({ mixin: { foo: "bfu1" } });
       expect(vm.vmChanged).toBeFalsy();
       vm.foo.name("A");
       expect(vm.vmChanged).toBe(true);

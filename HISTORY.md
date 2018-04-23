@@ -1,3 +1,6 @@
+# 3.1.3
+* ViewModel.property.afterUpdate now passes the previous value, not the new one (which can be accessed via the VM).
+
 # 3.1.2
 * Update vmChanged when share/mixin updates
 
