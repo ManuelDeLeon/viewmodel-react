@@ -1,6 +1,6 @@
 {
   "name": "viewmodel-react",
-  "version": "3.1.3",
+  "version": "3.1.6",
   "description": "ViewModel for React",
   "main": "dist/viewmodel.js",
   "author": "Manuel De Leon <manuel@me.com> (https://viewmodel.org/)",

@@ -213,7 +213,7 @@ export default class ViewModel {
             validationAsync.count--;
             validationAsync.value = initialValue;
             validationAsync.result = result;
-            dependency.changed();
+            ViewModel.Tracker.afterFlush(() => dependency.changed());
           };
         }
       : void 0;
@@ -1367,13 +1367,13 @@ export default class ViewModel {
     var previous = 0;
     if (!options) options = {};
     var later = function() {
-      previous = options.leading === false ? 0 : _.now();
+      previous = options.leading === false ? 0 : Date.now();
       timeout = null;
       result = func.apply(context, args);
       if (!timeout) context = args = null;
     };
     return function() {
-      var now = _.now();
+      var now = Date.now();
       if (!previous && options.leading === false) previous = now;
       var remaining = wait - (now - previous);
       context = this;
