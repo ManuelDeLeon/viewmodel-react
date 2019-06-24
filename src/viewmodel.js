@@ -204,16 +204,28 @@ export default class ViewModel {
     });
 
     const hasAsync = validator.hasAsync();
-    let validationAsync = { count: 0 };
+    let validationAsync = {
+      hasResult: false,
+      result: false,
+      pending: false,
+      value: undefined
+    };
 
     const getDone = hasAsync
       ? function(initialValue) {
-          validationAsync.count++;
+          validationAsync = {
+            hasResult: false,
+            result: false,
+            pending: true,
+            value: initialValue
+          };
           return function(result) {
-            validationAsync.count--;
-            validationAsync.value = initialValue;
+            validationAsync.hasResult = true;
             validationAsync.result = result;
-            ViewModel.Tracker.afterFlush(() => dependency.changed());
+            validationAsync.pending = false;
+            ViewModel.Tracker.afterFlush(function() {
+              return dependency.changed();
+            });
           };
         }
       : void 0;
@@ -225,15 +237,19 @@ export default class ViewModel {
       if (!validSync || noAsync || !hasAsync) {
         if (!validSync) {
           return false;
-        } else if (hasAsync && validationAsync.value === _value) {
+        } else if (
+          hasAsync &&
+          validationAsync.hasResult &&
+          _value === validationAsync.value
+        ) {
           return validationAsync.result;
         } else {
           return true;
         }
       } else {
-        if (validationAsync.value === _value) {
+        if (validationAsync.hasResult && _value === validationAsync.value) {
           return validationAsync.result;
-        } else {
+        } else if (_value !== validationAsync.value) {
           validator.verifyAsync(_value, getDone(_value), component);
           return false;
         }
@@ -261,7 +277,7 @@ export default class ViewModel {
         return false;
       }
       dependency.depend();
-      return !!validationAsync.count;
+      return validationAsync.pending;
     };
 
     funProp.message = function() {
